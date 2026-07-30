@@ -64,7 +64,7 @@ function RegisterView({ onNavigate, showRole = false, onBack }: { onNavigate: (p
         body: JSON.stringify({
           name: form.name,
           email: form.email,
-          phoneNumber: form.phone,
+          phone: form.phone,
           dob: form.dob,
           address: form.address,
           password: form.password,
@@ -222,17 +222,25 @@ function LoginView({ onNavigate }: { onNavigate: (p: Page, params?: NavigatePara
         credentials: "include",
       });
 
+      console.debug("response ", response);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || response.statusText || "Login failed");
       }
 
+      
       const data = await response.json();
+      if(!data || typeof data !== "object" || !("profile" in data) || !("role" in data)) {
+        throw new Error("Invalid response format from server");
+      }
+
+      console.debug("data ", data);
+
       const role: string = data.role ?? data.user?.role ?? "";
       data.profile.role=role;
       setProfile(data.profile);
 
-      console.debug("data ", data);
+      
 
       switch(role.toLowerCase())
       {
