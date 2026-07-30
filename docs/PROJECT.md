@@ -12,7 +12,7 @@ RydeePortalWebsite is a single-page React portal for the Rydee ride-hailing plat
 
 ## Current State (as of 2026-07-30)
 
-Iteration 2 — Hardening is **COMPLETE** (2026-07-30). All five quality gates are green: lint 0 errors, typecheck 0 errors (strict: true), typecheck:strict 0 errors (now redundant — candidate for a future chore to fold), build clean, 44 regression tests passing. 8 unused dependencies removed; react-router patched to ^7.18.2 (security). Bundle baseline updated to **170.07 kB gzip** (±2% band applies from here).
+Iteration 4 — Form Validation, Datepicker, Cursor & UX Polish + Iter 4.1 hotfix (canonical datepicker pattern) + Iter **4.2 P1 hotfix** (shadcn primitive version-skew fix + E2E smoke) + Iter **4.3 perf fix** (DatePickerPopover prefetch) + Iter **4.4 simplification** (lazy split removed, static bundling) is **COMPLETE** (2026-07-30). Per-field on-blur + on-submit validation live on Login and Register (age 18–100, dob DD/MM/YYYY display → ISO submit); shared shadcn-canonical DatePickerField (button-trigger, lazy DatePickerPopover chunk) on RegisterPage and PendingRiders; clickable StatCard as semantic `<button>`; cursor-pointer restored; PendingRiders select chrome fixed. All five quality gates green: lint 0 errors, typecheck 0 errors, typecheck:strict 0 errors, build clean, **55 regression tests passing** (revised from 58 — 6 unreachable-by-design typed-entry tests removed after typed DOB entry dropped; 3 button-pattern tests added; see Iter 4.1 subsection). Bundle baseline: main **223.43 kB gzip** (±2% band 219.0–227.9 kB); single chunk — async DatePickerPopover chunk no longer exists (removed Iter 4.4).
 
 | Area | Status |
 |------|--------|
@@ -24,11 +24,21 @@ Iteration 2 — Hardening is **COMPLETE** (2026-07-30). All five quality gates a
 | MUI + Emotion + maplibre removed | ✅ Done |
 | Tooling (ESLint + Prettier + typecheck + CI) | ✅ Done — GitHub Actions on push/PR |
 | AGENTS.md + AI assistant rules | ✅ Done — canonical rules file + CLAUDE.md / .cursor / .github stubs |
-| TypeScript strict mode | ✅ Done — `strict: true` flipped in `e84b920`; `typecheck:strict` now redundant (candidate for future chore) |
+| TypeScript strict mode | ✅ Done — `strict: true` flipped in `e84b920`; `typecheck:strict` script now redundant (candidate for future chore) |
 | `.env` removed from git | ✅ Done |
 | **🔑 Google Maps key rotation** | ✅ **DONE (2026-07-30, dandkhan)** — new key issued + HTTP-referrer restriction applied. D13 (git history rewrite) now optional / low-priority. |
 | Collaborator merge round (b0ef29c) | ✅ Done — see below |
-| **Iteration 2 — Hardening** | ✅ **COMPLETE 2026-07-30** — see below |
+| **Iteration 2 — Hardening** | ✅ **COMPLETE 2026-07-30** |
+| **Iteration 3 — D8 shadcn Restyle** | ✅ **COMPLETE 2026-07-30** — commits `57545a6` / `38c773b` / `1a6962f` / `f3e195d`; QA SHIP; UX 5/5 deviation approvals |
+| **Iteration 4 — Form Validation + Datepicker** | ✅ **COMPLETE 2026-07-30** — commits `f9fcfc0` / `9948996` / `4252e13` / `7693215` / `731dff6` / `1dc7781` / `532391d`; QA SHIP; 3× INFO findings only |
+
+**D8 restyle summary:**
+- shadcn primitives adopted across all pages (auth, dashboards, riders) — Radix `<Checkbox>`, `<AlertDialog>`, `<Button>`, `<Card>`, `<Input>`, `<Label>`, `<Badge>`, `<Select>`, `<Table>` in use
+- Palette A (`--primary #0d8f6e`) — WCAG AA on all tokens; one documented borderline: `--primary` = 4.06:1 on white (passes AA-Large / UI 3:1, borderline AA-normal; documented in `theme.css`; see QA F1/P3 → D19)
+- 32 JS inline style event handlers removed (`onMouseEnter`/`onMouseLeave`/`onFocus={style}`/`onBlur={style}`)
+- `src/components/shared-styles.ts` deleted (46-line legacy helper)
+- a11y items closed: Radix `<Checkbox>` replaces div-as-checkbox, `<AlertDialog>` focus-trap, `focus-visible:ring-*` via shadcn, `role="alert"`/`status` + `aria-live` on errors/banners, `@media (prefers-reduced-motion)` global guard in `theme.css`, `sr-only` caption + `fieldset/legend` on documents group, password-toggle `aria-pressed` + tab order restored
+- New shared components: `DashboardHeader`, `StatCard` in `src/features/dashboards/components/`
 
 ---
 
@@ -89,9 +99,144 @@ Batched execution, QA-gated before each push. All items closed.
 
 **Iteration 2 gate results (final):** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build 596.98 kB / **170.07 kB gzip** · test 44/44 ✅
 
-**Bundle baseline reset:** 170.07 kB gzip (react-router ^7.18.2 bump). ±2% band (±3.4 kB) applies from this baseline.
+---
 
-**npm-audit note:** `react-router v8` and `eslint v10` are major-version jumps — both declined for Iter 2 (scope). No critical CVEs in current versions. Re-evaluate in next hardening cycle.
+## Iteration 3 — D8 shadcn Restyle ✅ COMPLETE 2026-07-30
+
+4-phase execution; QA SHIP verdict (`docs/qa/d8-restyle-review.md`); 5/5 UX deviation approvals.
+
+| Phase | Commit | Scope |
+|-------|--------|-------|
+| Phase 1 — auth pages | `57545a6` | `AuthShell`, `LoginPage`, `RegisterPage` restyle with shadcn |
+| Phase 2 — dashboard chrome | `38c773b` | `AdminDashboard`, `OperatorDashboard`, `RiderDashboard` + new `DashboardHeader`/`StatCard` |
+| Phase 3 — riders | `1a6962f` | `ActiveRiders`, `PendingRiders` restyle (Radix Checkbox + AlertDialog) |
+| Phase 4 — cleanup | `f3e195d` | `RiderLocationView` cleanup; `shared-styles.ts` deleted; 32 JS style handlers removed |
+
+**Iteration 3 gate results (final):** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build 1984 modules / **192.90 kB gzip** · test 44/44 ✅
+
+**Bundle baseline reset:** 192.90 kB gzip (+22.83 kB from Iter 2; delta = Radix AlertDialog + Checkbox runtime). ±2% band (±3.86 kB) applies from this baseline.
+
+**UX deviation approvals (5/5):**
+1. Role dropdown kept native `<select>` (test-selector constraint, spec §6.4)
+2. PendingRiders rider/area selects kept native (Radix Select+popper ~20 kB gzip — over budget)
+3. Primary bg solid `#0d8f6e` (Option B gradient → flat; documented in `theme.css`)
+4. RiderDashboard profile table kept native `<table>` (a11y met via `sr-only` caption + `scope="row"`)
+5. ActiveRiders Leaflet popup state badges use inline hex (Leaflet Popup outside React style tree)
+
+**QA P3 residuals → D19/D20/D21 (see register below)**
+
+---
+
+## Iteration 4 — Form Validation, Datepicker & UX Polish ✅ COMPLETE 2026-07-30
+
+7-commit execution; QA SHIP verdict (`docs/qa/iter4-review.md`); 3× INFO findings resolved.
+
+| Commit | Scope |
+|--------|-------|
+| `f9fcfc0` | fix(styles): cursor-pointer global CSS rule — Tailwind v4 preflight root cause |
+| `9948996` | fix(riders): `.select-field` class restores PendingRiders select chrome |
+| `4252e13` | feat(dashboards): clickable StatCard as semantic `<button>` w/ aria-label + motion-reduce |
+| `7693215` | feat(auth): form validation Login+Register per matrix, age 18–100, on-blur+submit, ARIA wiring, dob DD/MM/YYYY→ISO |
+| `731dff6` | feat(auth): shadcn Calendar+Popover DOB datepicker, react-day-picker v8 dropdown-buttons 1940..current−18, ADR-0003 dob footnote |
+| `1dc7781` | perf(auth): code-split DobPicker lazy chunk |
+| `532391d` | test: 14 additive regression tests (iter4-additive.test.tsx) |
+
+**Product decisions (owner: Danial Khan, 2026-07-30):**
+1. DOB displays DD/MM/YYYY in UI; submits ISO YYYY-MM-DD — documented in ADR-0003 footnote.
+2. Minimum age **18** (supersedes spec §1.3/§2.3 draft value of 16); maximum 100.
+
+**Iteration 4 gate results (final):** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build 2017 modules / **195.04 kB gzip** (within ±2% band) · test **58/58** ✅
+
+**Bundle baselines reset:**
+- Main bundle: **195.04 kB gzip** (band ±2% = 191.1–198.9 kB)
+- Async DobPicker chunk: **28.64 kB gzip** (loads on first picker open only)
+
+**QA F-findings (all INFO):**
+- F1 — hash citation in review refers to `c0c9163` but actual tip is `1dc7781` (identical semantics; docs-only note)
+- F2 — spec §1.3/§2.3 still shows 16-100 draft; resolved by amendment in `docs/ux/iter4-spec.md`
+- F3 — cursor rule improvement is spec-sample deviation; implementation superior; no action
+
+### Iteration 4.1 Hotfix ✅ COMPLETE 2026-07-30
+
+Product-owner rejected the Iter 4 §2 datepicker UX (ghost-icon trigger undiscoverable on RegisterPage; PendingRiders DOB still native `type=date`). Typed DD/MM/YYYY entry removed — owner-approved trade. See `docs/ux/iter4-spec.md` Product Decisions Amendment §Iter 4.1 and `docs/qa/iter4-review.md` §Iteration 4.1 Addendum.
+
+| Commit | Scope |
+|--------|-------|
+| `29099e3` | feat(auth): shared shadcn-canonical DatePickerField + DatePickerPopover lazy chunk + date-helpers; RegisterPage adoption; typed DOB entry removed |
+| `6113b5c` | feat(riders): PendingRiders DOB adopts shared DatePickerField; ISO state preserved for calcAge |
+
+**Hotfix gate results:** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build **195.27 kB gzip** (band 191.1–198.9 ✓) · test **55/55** ✅
+
+**Test-count revision (58 → 55 — honest record):** Prior close-out reported 58 (44 baseline + 14 additive). Hotfix revised additive count to 11 (net −3): 6 typed-entry tests removed because they drove input fields that no longer exist after typed entry removal — these scenarios are unreachable by design (picker year/day bounds enforce age ≥ 18 and calendar grid never offers Feb 29 on non-leap years); 3 new button-pattern tests added covering the canonical trigger, required-dob submit blocking, and `aria-invalid` wiring. Baseline 44 tests byte-identical. ISO wire contract retained by `contract.test.ts`. Removals are principled, not a quality regression.
+
+**Bundle baseline update:**
+- Main bundle: **195.27 kB gzip** (±2% band 191.1–198.9 kB — unchanged)
+- Async chunk renamed `DobPicker-*` → `DatePickerPopover-*`: **28.75 kB gzip** (was 28.64 kB, +0.11 kB — within noise)
+
+**Deleted:** `src/features/auth/pages/components/DobPicker.tsx` (superseded by `src/components/DatePickerField.tsx` + `DatePickerPopover.tsx`)
+
+**QA F-findings (all INFO):** F-4.1-01 underage-in-current-year window (submit blocks wire; no action), F-4.1-02 `dobToIso` transform coverage gap (contract.test.ts covers wire shape; no action), F-4.1-03 async chunk rename (expected; no action). Full findings in `docs/qa/iter4-review.md` §Iteration 4.1 Addendum.
+
+### Iteration 4.2 P1 Hotfix ✅ COMPLETE 2026-07-30
+
+**Incident:** DOB picker never opened after Iter 4.1 shipped. Root cause: **version-skew class of bug** — shadcn primitives generated for wrong library versions. `ui/button.tsx` was in React-19 ref-as-prop style (function component receiving `ref` as a plain prop) running on React 18.3.1; Radix `asChild` (`PopoverTrigger asChild → Button`) silently dropped the anchor ref because `forwardRef` was absent, so `[data-radix-popper-content-wrapper]` never mounted. `ui/calendar.tsx` classNames targeted react-day-picker v9 CaptionDropdowns naming conventions while the installed library is v8 — produced garbled caption layout.
+
+| Commit | Scope |
+|--------|-------|
+| `ab2a32c` | fix(ui): `button.tsx` full-file rewrite back to `React.forwardRef<HTMLButtonElement, ButtonProps>` — H4-compliant; cva config byte-identical; fixes P1 and (as free win F-4.2-01) the latent identical bug in `PendingRiders` `AlertDialogTrigger asChild` |
+| `65e966b` | fix(ui): `calendar.tsx` full-file rewrite mapping react-day-picker v8 CaptionDropdowns classNames; scoped trigger field-styling on `DatePickerField`/`DatePickerPopover` (palette-collision fix: outline button no longer flashes primary-green on hover/open) |
+| `54d1121` | test(e2e): opt-in Playwright Chromium smoke — `npm run test:e2e`, `tests/e2e/datepicker.spec.ts`; 1 passed 9.5s; closes structural gap F-4.2-02 (jsdom structurally cannot exercise the lazy Radix chunk) |
+
+**QA verdict:** ✅ **SHIP** — all 5 gates green; H1–H8 verified; `asChild` blast-radius clean; free win F-4.2-01 documented. E2E smoke 1/1 passed.
+
+**Free win (F-4.2-01):** Primitive-level `button.tsx` fix simultaneously resolved a latent identical P1 in the `Block rider` `AlertDialogTrigger asChild` path on `/admin/pending-riders` at zero incremental cost.
+
+**Hotfix gate results:** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build **195.31 kB gzip** (band 191.1–198.9 ✓) · test **55/55** ✅ · e2e 1 smoke ✅
+
+**Bundle baseline update:**
+- Main bundle: **195.31 kB gzip** (±2% band 191.1–198.9 kB — unchanged)
+- Async DatePickerPopover chunk: **28.94 kB gzip** (+0.19 kB vs 4.1 — well within noise)
+
+Full QA addendum in `docs/qa/iter4-review.md` §Iteration 4.2 addendum.
+
+### Iteration 4.3 Perf Fix ✅ COMPLETE 2026-07-30
+
+**Problem:** First-click spinner on the DOB picker — Suspense fallback fired while the lazy `DatePickerPopover` chunk was fetched, causing a visible flash on slow networks.
+
+**Fix:** Memoised shared loader (`src/components/DatePickerPopover.loader.ts`) + layered prefetch strategy: `requestIdleCallback` (1.75 s `setTimeout` fallback) fires on mount; `pointerenter`/`focus` on the trigger accelerate prefetch for pointer/keyboard users. All three paths funnel through a single memoised `import()` promise (exactly-one-request invariant). Code-split preserved; Suspense spinner retained as slow-network safety net.
+
+| Commit | Scope |
+|--------|-------|
+| `678d753` | perf(components): memoised shared loader + layered prefetch (requestIdleCallback + pointer/focus hooks) |
+| `aa7ed38` | docs: QA Iteration 4.3 addendum committed |
+
+**QA verdict:** ✅ **SHIP** — `docs/qa/iter4-review.md` §Iteration 4.3 addendum. H1–H8 all 🟢. No new tests needed (behavior is real-browser/real-network; existing E2E smoke 1/1 ✅).
+
+**Hotfix gate results:** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build **195.46 kB gzip** (band 191.1–198.9 ✓) · test **55/55** ✅ · e2e 1/1 ✅
+
+**Bundle baseline update:**
+- Main bundle: **195.46 kB gzip** (±2% band 191.1–198.9 kB — unchanged)
+- Async DatePickerPopover chunk: **28.93 kB gzip** (−0.01 kB vs 4.2 — within noise)
+
+### Iteration 4.4 Datepicker Simplification ✅ COMPLETE 2026-07-30
+
+**Owner decision (Danial Khan, 2026-07-30):** At ~224 kB total the app doesn't justify micro-splitting the 29 kB picker chunk against the cost of `React.lazy` + `Suspense` + `pickerMounted` state + prefetch (idle + pointerenter/focus) + spinner + loader-module machinery. `DatePickerPopover.tsx` + `DatePickerPopover.loader.ts` deleted; all logic folded into `DatePickerField.tsx` (static imports, Radix controlled `open` state). **Net result: −146 lines, zero loading states, single JS chunk.** Route-level code-splitting to be reconsidered when the app genuinely grows (see D22).
+
+| Commit | Scope |
+|--------|-------|
+| `0f79f7e` | refactor(components): merge DatePickerPopover into DatePickerField, drop lazy split, static imports, controlled Radix open |
+| `0b764d0` | docs: QA Iteration 4.4 addendum (verdict SHIP; F-4.4-01 doc-only, F-4.4-02 recommend-only) |
+| `3b9e1bf` | chore: stale-comment cleanup |
+
+**Iteration 4.4 gate results (final):** lint 0e/0w · typecheck 0 · typecheck:strict 0 · build 15.4s / **223.43 kB gzip SINGLE chunk** (no async chunks) · test **55/55** · e2e 1/1 ✅
+
+**Bundle baselines reset:**
+- Main bundle: **223.43 kB gzip** (±2% band **219.0–227.9 kB**)
+- Async DatePickerPopover chunk: **no longer exists** — picker/calendar are statically bundled into main
+
+**QA F-findings:**
+- F-4.4-01 — Minor/doc-only: stale JSDoc in `RegisterPage.tsx:286-288` references "lazy split PRESERVED" post-simplification; non-blocking, refresh next time file is edited
+- F-4.4-02 — Recommend-only: re-adding jsdom "select-a-date → ISO wire" test not recommended (E2E + contract.test.ts cover the invariant; rdp v8 native overlay fragile in jsdom)
 
 ---
 
@@ -106,7 +251,7 @@ Batched execution, QA-gated before each push. All items closed.
 | QA F3 resolved Option A (user decision) | Operator allowed on `/admin/active-riders`, `/admin/pending-riders`, `/admin/riders/:riderId/location` | ADR-0002 fn¹ |
 | Session persistence — localStorage v1 envelope | `{ v: 1, profile, savedAt }`, 24h TTL, versioned for future v2 bump; `session.ts` is sole read/write path (H7) | ADR-0002 |
 | Customer seed = F1 regression tripwire | `phone: 0300444444` must never be deleted — only in-app way to smoke-test the unknown-role logout path | [mocks/README.md](../src/mocks/README.md) |
-| shadcn/ui + Tailwind 4 kept; MUI removed | 48 `components/ui/` files preserved untouched (H4 — do not edit); adoption deferred (D8) | ADR-0001 |
+| shadcn/ui adopted across all pages (D8 CLOSED) | 48 `components/ui/` files consumed untouched (H4); Palette A selected; 32 JS style handlers removed; `shared-styles.ts` deleted | [docs/qa/d8-restyle-review.md](qa/d8-restyle-review.md) |
 | Both map libs kept (Google Maps + Leaflet) | Consolidation deferred (D7) | ADR-0001 |
 | `strict: true` enabled (Iter 2) | Flipped in `e84b920`; `typecheck:strict` script now redundant — candidate for future chore to fold | [strict-errors.md](design/strict-errors.md) |
 | API contract frozen (H1) | Field names, `credentials:include`, endpoint paths locked; MSW handlers are the living contract | ADR-0003 |
@@ -115,6 +260,15 @@ Batched execution, QA-gated before each push. All items closed.
 | PendingRiders live-endpoint migration deferred | Mock-driven UX preserved; migration tracked as D18 | D18 |
 | D13 (git history rewrite) — optional/low-priority | Google Maps key rotated (2026-07-30); old history purge is cosmetic only now | D13 |
 | react-router ^7.18.2 security patch | Patched in `6f4e165`; v8 major upgrade declined (out of scope); bundle baseline reset to 170.07 kB gzip | D10 |
+| Bundle baseline reset (Iter 3) | 192.90 kB gzip; +22.83 kB = Radix AlertDialog + Checkbox runtime; UX-approved | [d8-restyle-review.md](qa/d8-restyle-review.md) §5 |
+| DOB wire format (Iter 4) | UI displays DD/MM/YYYY; `dob` field submitted as ISO YYYY-MM-DD — product decision 2026-07-30, documented in ADR-0003 footnote | ADR-0003 |
+| Minimum registration age 18 (Iter 4) | Supersedes spec §1.3/§2.3 draft value of 16; enforced in validation + datepicker year bounds — product decision 2026-07-30 | [iter4-spec.md amendment](ux/iter4-spec.md) |
+| DobPicker lazy chunk (Iter 4) | react-day-picker heavy; code-split via `React.lazy` — 28.64 kB gzip async, loads on first picker open | `1dc7781` |
+| Bundle baseline reset (Iter 4) | Main **195.04 kB gzip** (±2% band 191.1–198.9 kB); DobPicker async chunk 28.64 kB — reset in `532391d` | [iter4-review.md](qa/iter4-review.md) §1 |
+| DOB entry is picker-only (canonical shadcn date-picker pattern); typed DD/MM/YYYY entry removed — supersedes iter4-spec §2.2 (owner decision 2026-07-30) | Ghost-icon-in-input trigger rejected as undiscoverable; shared `DatePickerField` + `DatePickerPopover` components adopted on RegisterPage + PendingRiders; ISO wire preserved; picker bounds unchanged | [iter4-spec.md amendment](ux/iter4-spec.md) §Iter 4.1 / `29099e3` / `6113b5c` |
+| `ui/button.tsx` + `ui/calendar.tsx` rewritten (Iter 4.2 P1) — version-skew class of bug; H4-compliant full-file swap | `button.tsx` restored to `React.forwardRef` for React 18.3.1/Radix `asChild` compatibility; `calendar.tsx` classNames mapped to react-day-picker v8 CaptionDropdowns; fixed P1 + free-win F-4.2-01 | `ab2a32c` / `65e966b` |
+| E2E smoke policy (Iter 4.2, owner-delegated, QA rec F-4.2-04, adopted 2026-07-30) | `npm run test:e2e` (Playwright Chromium, opt-in) is the pre-release gate for `ui/{button,popover,calendar,alert-dialog}`, `DatePickerField/Popover`, or any lazy Radix surface; NOT a default CI gate until ≥ 3 specs and < 60s (see Conventions/Gates note) | `54d1121` / [iter4-review.md](qa/iter4-review.md) §F-4.2-04 |
+| Datepicker eager-bundled — lazy split removed (owner, 2026-07-30); revisit splitting at route level as app grows | At ~224 kB the micro-split premium (Suspense spinner + loader machinery) exceeded its value; `DatePickerPopover` + loader folded back into `DatePickerField` static imports; −146 net lines; single JS chunk; see D22 | `0f79f7e` / [iter4-review.md](qa/iter4-review.md) §Iter 4.4 |
 
 ---
 
@@ -148,6 +302,26 @@ Batched execution, QA-gated before each push. All items closed.
 
 **Verdict:** ✅ PUSH-SAFE. All H-rules respected, all gates green, remote intent faithfully ported, PendingRiders rewrite deferred as D18. Gates: lint 0e/14w · typecheck 0 · typecheck:strict 0 · build 597.24 kB / 168.69 kB gzip (+0.32% — within ±2% budget). See `docs/qa/release-readiness.md` §Pre-Push Merge Review.
 
+### D8 Restyle Review (2026-07-30)
+
+**Verdict:** ✅ SHIP. All gates green; H1/H2/H3/H4/H6/H7/H8 verified via targeted diff; all major a11y findings closed; bundle 192.90 kB gzip with plausible attribution; 5/5 documented deviations present in-file. F1–F3 are P3 trivia → D19/D20/D21. See `docs/qa/d8-restyle-review.md`.
+
+### Iteration 4 Review (2026-07-30)
+
+**Verdict:** ✅ **SHIP**. Gates at `532391d`: lint 0e/0w · typecheck 0 · typecheck:strict 0 · build 195.04 kB gzip (in band) · test 58/58. H1–H8 all respected. 3 INFO findings: F1 hash citation (docs-only), F2 spec age draft resolved by amendment in `docs/ux/iter4-spec.md`, F3 cursor rule improvement (no action). See `docs/qa/iter4-review.md`.
+
+### Iteration 4.3 Perf Fix Review (2026-07-30)
+
+**Verdict:** ✅ **SHIP**. Gates at HEAD `678d753`: lint 0e/0w · typecheck 0 · typecheck:strict 0 · build **195.46 kB gzip** (in band) · test **55/55** · e2e 1/1. H1–H8 all 🟢. Bundle split preserved; loader-pattern (dedup, failure-reset, idle guard, keyboard) verified. See `docs/qa/iter4-review.md` §Iteration 4.3 addendum.
+
+### Iteration 4.2 P1 Hotfix Review (2026-07-30)
+
+**Verdict:** ✅ **SHIP**. Gates at HEAD `65e966b`: lint 0e/0w · typecheck 0 · typecheck:strict 0 · build **195.31 kB gzip** (in band) · test **55/55** · e2e 1/1 smoke. H1–H8 verified; `asChild` blast-radius confirmed clean; free win F-4.2-01 (AlertDialogTrigger fix). See `docs/qa/iter4-review.md` §Iteration 4.2 addendum.
+
+### Iteration 4.4 Datepicker Simplification Review (2026-07-30)
+
+**Verdict:** ✅ **SHIP**. Gates at HEAD `0f79f7e`: lint 0e/0w · typecheck 0 · typecheck:strict 0 · build **223.43 kB gzip SINGLE chunk** (no async chunks) · test **55/55** · e2e 1/1. All lazy machinery (`React.lazy`, `Suspense`, `pickerMounted`, prefetch loader) removed from source. Every 4.1–4.3 behavioral contract preserved (dropdown-buttons caption, 1940..current-18 bounds, DD/MM/YYYY display, ISO wire, ARIA wiring, field-styling locks). Bundle baseline reset; old 191.1–198.9 kB band void; new band 219.0–227.9 kB. F-4.4-01 doc-only (stale JSDoc comment); F-4.4-02 recommend-only. See `docs/qa/iter4-review.md` §Iteration 4.4 addendum.
+
 ---
 
 ## Open Items — Deferred Work Register
@@ -161,7 +335,7 @@ Batched execution, QA-gated before each push. All items closed.
 | D5 | ~~`ImageWithFallback.tsx` unimported — delete or adopt~~ **CLOSED** — route adapter split `fe6c64f` | — | Closed |
 | D6 | ~~Unify `RiderDashboard` inline `Profile`; remove `@ts-nocheck`; flip `strict: true`~~ **CLOSED** — `e84b920` | — | Closed |
 | D7 | Map library consolidation (Google Maps vs Leaflet) | Architect + PM | Backlog |
-| D8 | Adopt `components/ui/` (shadcn) in pages — restyle iteration | Frontend Dev | Backlog |
+| D8 | ~~Adopt `components/ui/` (shadcn) in pages — restyle iteration~~ **CLOSED** — `57545a6`/`38c773b`/`1a6962f`/`f3e195d`; QA SHIP 2026-07-30 | — | Closed |
 | D9 | ~~Auth session persistence~~ **CLOSED** — localStorage v1 envelope + 24h TTL shipped `0960516`. Remainder → D17 | — | Closed |
 | D10 | ~~Dependency audit~~ **CLOSED** — 8 unused deps removed, react-router patched to ^7.18.2 (`6f4e165`) | — | Closed |
 | D11 | `Customer` role — route/home destination undefined; `roleHome` falls back to `/login` + logout | Architect + PM | Backlog |
@@ -172,8 +346,11 @@ Batched execution, QA-gated before each push. All items closed.
 | D16 | ~~Post-register `navigate("/login")` should use `{ replace: true }`~~ **CLOSED** — `6b114d2` | — | Closed |
 | D17 | Token-based auth + server-side revocation + `/me` rehydrate (D9 remainder) — future ADR, backend contract pending | Backend + Frontend Dev | Backlog |
 | D18 | PendingRiders live-endpoint migration (`POST /GetAll/UnregisteredRiders`) — mock-driven UX preserved; migrate when backend ready | Frontend Dev | Backlog |
+| D19 | **[QA D8-F1/P3]** `--primary #0d8f6e` = 4.06:1 on white text — passes AA-Large / UI 3:1 but fails AA-normal 4.5:1. Options: (a) accept as documented Palette-A trade-off (already in `theme.css` comment), or (b) darken flat token to `#0a7c5f` (5.17:1) in a follow-up polish commit. Non-blocking; real button labels at 14px semibold are borderline "large text" per WCAG. | Frontend Dev + UX | Low |
+| D20 | **[QA D8-F2/P3]** `RiderDashboard.tsx:2-3` top-comment says "Table body migration deferred to Phase 4" — stale post-Phase-4. Clarify comment to state native `<table>` is the final implementation (a11y met via `sr-only <caption>` + `scope="row"`; shadcn `<Table>` adds no semantic value here). Docs-only change, non-blocking. | Frontend Dev | Low |
+| D21 | **[QA D8-F3/P3]** `PendingRiders.tsx:201,265` uses `tabIndex={-1}` on read-only display Inputs (Age, PIN). Correct by design (read-only; spec §2.3), but may confuse reviewers. Consider replacing with `<p>`/`<output>` styled to match for clearer semantics. Non-blocking. | Frontend Dev | Low |
 | — | `npm audit` majors — `react-router v8` and `eslint v10` are major-version jumps; no critical CVEs in current versions; re-evaluate next hardening cycle | Frontend Dev | Backlog |
-| — | Bundle-size tracking — gzip baseline **170.07 kB** (reset Iter 2); ±2% band = 166.7–173.5 kB | Frontend Dev | Ongoing |
+| — | Bundle-size tracking — main gzip baseline **223.43 kB** (updated Iter 4.4; single chunk); ±2% band = 219.0–227.9 kB; async DatePickerPopover chunk no longer exists | Frontend Dev | Ongoing |
 | — | `typecheck:strict` script is now redundant (same as `typecheck` since `strict: true`); candidate for a future chore to fold/remove | Frontend Dev | Low |
 
 ---
@@ -183,7 +360,7 @@ Batched execution, QA-gated before each push. All items closed.
 | Convention | Detail |
 |-----------|--------|
 | Commit style | `chore/refactor/feat/fix/docs(scope): description`; every commit ends with all gates green |
-| Quality gates | `npm run lint` (0 errors) · `npm run typecheck` (0 errors) · `npm run typecheck:strict` (0 errors) · `npm run build` · `npm test` (44 regression tests) — all required before merging |
+| Quality gates | `npm run lint` (0 errors) · `npm run typecheck` (0 errors) · `npm run typecheck:strict` (0 errors) · `npm run build` · `npm test` (55 regression tests) — all required before merging. `test:e2e` (Playwright Chromium smoke, opt-in) — run before release whenever `src/components/ui/{button,popover,calendar,alert-dialog}`, `DatePickerField`/`DatePickerPopover`, or any lazy Radix surface changes; NOT part of the default 5 gates (QA rec F-4.2-04: revisit joining CI once ≥ 3 specs, < 60s) |
 | CI | GitHub Actions (`.github/workflows/ci.yml`) — Node 20, `npm ci` cache, push/PR |
 | ADRs | `docs/adr/NNNN-slug.md` — Proposed → Accepted/Rejected/Superseded; update in same commit as any shape change |
 | AGENTS.md hard rules | **H1–H8 bind all contributors and AI coding tools.** H1 API contract frozen, H2 never widen ROLES, H3 never delete Customer seed, H4 don't edit `components/ui/`, H5 never commit `.env`, H6 handlers import URLs from `lib/config.ts`, H7 auth storage only via `session.ts`, H8 guard changes require tracing PublicOnly + ProtectedRoute |
@@ -203,8 +380,13 @@ Batched execution, QA-gated before each push. All items closed.
 | ADR-0001: Feature-Based Structure | `docs/adr/0001-target-folder-structure.md` |
 | ADR-0002: Routing & Auth (incl. session persistence) | `docs/adr/0002-routing-and-auth.md` |
 | ADR-0003: Mock API (MSW) | `docs/adr/0003-mock-api-msw.md` |
-| Migration Plan (C0–C7 + deferred register D1–D18) | `docs/design/migration-plan.md` |
+| Migration Plan (C0–C7 + deferred register D1–D21) | `docs/design/migration-plan.md` |
 | TypeScript Strict Mode Baseline | `docs/design/strict-errors.md` |
+| UX Restyle Audit | `docs/ux/restyle-audit.md` |
+| UX Restyle Spec | `docs/ux/restyle-spec.md` |
 | QA C5 Review | `docs/qa/c5-review.md` |
 | QA C6/C7 + D9 + Merge Review b0ef29c | `docs/qa/release-readiness.md` |
+| QA D8 Restyle Review | `docs/qa/d8-restyle-review.md` |
+| UX Iteration 4 Spec (+ product decisions amendment) | `docs/ux/iter4-spec.md` |
+| QA Iteration 4 Review | `docs/qa/iter4-review.md` |
 | MSW Developer Guide (seeds, contract, troubleshooting) | `src/mocks/README.md` |
