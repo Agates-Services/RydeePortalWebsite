@@ -8,27 +8,21 @@
   --card-foreground: #1e3040;
   --popover: #ffffff;
   --popover-foreground: #1e3040;
-  /* D8 palette A: primary darkened for AA (white text >= 4.5:1). */
   --primary: #0d8f6e;
   --primary-foreground: #ffffff;
   --primary-hover: #0a7c5f;
   --primary-active: #086a51;
   --primary-text: #0f7c63;
-  /* Brand-bright — decorative only (badge fills, ring glow); NOT for text on white. */
   --brand-bright: #17a882;
   --secondary: #e4f5f0;
   --secondary-foreground: #1e3040;
   --muted: #e4f5f0;
-  /* D8: AA fix — was #5a8070 (4.02:1 on #f0faf7). Now #4a6b5e (5.1:1). */
   --muted-foreground: #4a6b5e;
   --accent: #0d8f6e;
   --accent-foreground: #ffffff;
-  /* D8: AA fix — was #ef4444 (3.75:1). Now #dc2626 (4.52:1). */
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  /* Form label emphasis (WCAG AA on #f0faf7 ~10.5:1). */
   --foreground-label: #1b4d3e;
-  /* Semantic state tokens (all AA on white). */
   --warning: #b45309;
   --warning-foreground: #ffffff;
   --warning-muted: rgba(180, 83, 9, 0.12);
@@ -44,6 +38,10 @@
   --switch-background: #b2ddd3;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --ring: #0d8f6e;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -160,12 +158,8 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);
@@ -212,23 +206,162 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  html[lang="ur"] body {
+    font-family: "Noto Nastaliq Urdu", var(--font-sans);
+  }
+
+  html[lang="ur"],
+  html[lang="ur"] body,
+  html[lang="ur"] h1,
+  html[lang="ur"] h2,
+  html[lang="ur"] h3,
+  html[lang="ur"] h4,
+  html[lang="ur"] p,
+  html[lang="ur"] label,
+  html[lang="ur"] span,
+  html[lang="ur"] li,
+  html[lang="ur"] td,
+  html[lang="ur"] th,
+  html[lang="ur"] button,
+  html[lang="ur"] a,
+  html[lang="ur"] input,
+  html[lang="ur"] textarea {
+    unicode-bidi: plaintext;
+  }
+
+  html[lang="ur"] body,
+  html[lang="ur"] p,
+  html[lang="ur"] li,
+  html[lang="ur"] td,
+  html[lang="ur"] th,
+  html[lang="ur"] dt,
+  html[lang="ur"] dd,
+  html[lang="ur"] label,
+  html[lang="ur"] legend,
+  html[lang="ur"] input,
+  html[lang="ur"] textarea,
+  html[lang="ur"] button,
+  html[lang="ur"] a,
+  html[lang="ur"] [role="tab"],
+  html[lang="ur"] [role="menuitem"],
+  html[lang="ur"] [data-slot="sidebar-menu-button"],
+  html[lang="ur"] [data-slot="sidebar-menu-sub-button"],
+  html[lang="ur"] [data-slot="badge"] {
+    line-height: 2 !important;
+  }
+
+  html[lang="ur"] [data-fqa-field-label] {
+    font-size: 0.875rem !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+  }
+  html[lang="ur"] [data-fqa-field-value] {
+    font-size: 1.0625rem !important;
+  }
+
+  [dir="rtl"] table[data-fqa-profile-kv] td {
+    unicode-bidi: plaintext;
+  }
+
+  html[lang="ur"] h1,
+  html[lang="ur"] h2,
+  html[lang="ur"] h3,
+  html[lang="ur"] h4 {
+    line-height: 1.8 !important;
+  }
+
+  html[lang="ur"] .h-7 {
+    height: auto !important;
+    min-height: calc(var(--spacing) * 7);
+  }
+  html[lang="ur"] .h-8 {
+    height: auto !important;
+    min-height: calc(var(--spacing) * 8);
+  }
+  html[lang="ur"] .h-9 {
+    height: auto !important;
+    min-height: calc(var(--spacing) * 9);
+  }
+  html[lang="ur"] .h-10 {
+    height: auto !important;
+    min-height: calc(var(--spacing) * 10);
+  }
+  html[lang="ur"] .h-11 {
+    height: auto !important;
+    min-height: calc(var(--spacing) * 11);
+  }
+  html[lang="ur"] .h-12 {
+    height: auto !important;
+    min-height: calc(var(--spacing) * 12);
+  }
+
+  html[lang="ur"] [data-slot="tabs-list"],
+  html[lang="ur"] [data-slot="tabs-trigger"],
+  html[lang="ur"] [data-slot="badge"] {
+    overflow: visible !important;
+  }
+
+  html[lang="ur"]
+    [data-slot="sidebar"]:not([data-collapsible="icon"])
+    [data-slot="sidebar-menu-button"],
+  html[lang="ur"]
+    [data-slot="sidebar"]:not([data-collapsible="icon"])
+    [data-slot="sidebar-menu-sub-button"] {
+    overflow: visible !important;
+  }
+
+  html[lang="ur"]
+    [data-slot="sidebar"]:not([data-collapsible="icon"])
+    [data-slot="sidebar-menu-button"]
+    span,
+  html[lang="ur"]
+    [data-slot="sidebar"]:not([data-collapsible="icon"])
+    [data-slot="sidebar-menu-sub-button"]
+    span {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    line-height: 2 !important;
+  }
+
+  html[lang="ur"] [data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-footer"] {
+    overflow: hidden;
+  }
+  html[lang="ur"] [data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-footer"] span {
+    white-space: nowrap;
+  }
+
+  html[lang="ur"] .truncate {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  html[lang="ur"] [data-slot="select-trigger"] {
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+  html[lang="ur"] [data-slot="select-value"] {
+    -webkit-line-clamp: unset !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
 }
 
-/* D8: reusable elevated-card shadow (was inline cardStyle boxShadow). */
 @layer components {
   .card-elevated {
     box-shadow:
       0 0 0 1px rgb(23 168 130 / 0.06),
-      0 8px 40px rgb(23 168 130 / 0.10);
+      0 8px 40px rgb(23 168 130 / 0.1);
   }
   .card-elevated-hover:hover {
     box-shadow:
-      0 0 0 1px rgb(23 168 130 / 0.20),
+      0 0 0 1px rgb(23 168 130 / 0.2),
       0 8px 40px rgb(23 168 130 / 0.16);
   }
 }
 
-/* D8: respect prefers-reduced-motion — kill pings + shorten transitions. */
 @media (prefers-reduced-motion: reduce) {
   .animate-ping,
   .animate-spin {
@@ -242,10 +375,11 @@
   }
 }
 
-/* Iter 4 §3: Restore pointer cursor for interactive elements.
-   Tailwind v4 preflight sets cursor:default on <button>; this rule reintroduces the
-   affordance across enabled buttons/links/selects/summary/role=button, and shows
-   not-allowed on disabled equivalents. Single global rule; no component edits. */
+/* Tailwind v4's preflight styles set cursor: default on <button>, which removes
+   the click-affordance across the whole app. This global rule restores a
+   pointer cursor for enabled interactive elements and a not-allowed cursor
+   for their disabled counterparts, so individual components do not need to
+   respecify the cursor property. */
 @layer base {
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -264,19 +398,24 @@
   }
 }
 
-/* Iter 4 §4: Shared class for native <select> elements to match shadcn <Input>
-   parity — explicit bg-white so it doesn't blend into the page background
-   (bg-input-background resolved transparent on the PendingRiders page bg).
-   Chevron rendered as inline SVG data-URI, right-aligned. */
+/* Shared style for native <select> elements so they visually match the shadcn
+   Input primitive. The background colour is set to white explicitly because
+   the bg-input-background token resolves to a transparent value on some pages
+   and would let the select blend into the page. The chevron is rendered as
+   an inline SVG data URI so no additional network request is required. */
 @layer components {
   .select-field {
-    @apply w-full rounded-xl px-4 py-3 text-sm
+    @apply w-full rounded-xl py-3 text-sm
            bg-white border border-input text-foreground
            appearance-none outline-none transition-shadow
            focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px];
+    padding-inline-start: 1rem;
+    padding-inline-end: 2.5rem;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a6b5e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
-    padding-right: 2.5rem;
+  }
+  [dir="rtl"] .select-field {
+    background-position: left 14px center;
   }
 }

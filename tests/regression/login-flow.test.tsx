@@ -1,30 +1,31 @@
-// Mocked login "E2E-ish" — renders the real LoginPage against the reused
-// msw/node handlers. Asserts:
-//   1. Success writes an envelope (H7) and lands on the correct role-home.
-//   2. D15: profile.role takes precedence over top-level data.role.
-//   3. Wrong password surfaces the 401 body text ("Invalid phone or password").
-//   4. Client-side validation blocks non-10-digit phones before fetch fires.
 import { describe, expect, it } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import {
-  Navigate,
-  Outlet,
-  RouterProvider,
-  createMemoryRouter,
-} from "react-router";
+import { Navigate, Outlet, RouterProvider, createMemoryRouter } from "react-router";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { ProtectedRoute, PublicOnly } from "@/features/auth/ProtectedRoute";
 import LoginPage from "@/features/auth/pages/LoginPage";
-import { API_LOGIN_URL } from "@/lib/config";
+import { API_LOGIN_URL } from "@/api/auth";
 import { SESSION_STORAGE_KEY } from "@/features/auth/session";
 import { server } from "../setup";
 
-function RiderHome() { return <div data-testid="rider-home">rider-home</div>; }
-function AdminHome() { return <div data-testid="admin-home">admin-home</div>; }
-function OperatorHome() { return <div data-testid="operator-home">operator-home</div>; }
-function Layout() { return <AuthProvider><Outlet /></AuthProvider>; }
+function RiderHome() {
+  return <div data-testid="rider-home">rider-home</div>;
+}
+function AdminHome() {
+  return <div data-testid="admin-home">admin-home</div>;
+}
+function OperatorHome() {
+  return <div data-testid="operator-home">operator-home</div>;
+}
+function Layout() {
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  );
+}
 
 function buildRouter(initial = "/login") {
   return createMemoryRouter(
@@ -68,7 +69,6 @@ describe("mocked login flow — seed users land on role home", () => {
     render(<RouterProvider router={buildRouter("/login")} />);
     await fillAndSubmit("0300111111", "rider");
     expect(await screen.findByTestId("rider-home")).toBeInTheDocument();
-    // H7: envelope must have been written by AuthProvider.
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
     expect(raw).toBeTruthy();
     const env = JSON.parse(raw!) as { v: number; profile: { role: string } };
@@ -94,12 +94,12 @@ describe("login failure paths", () => {
     render(<RouterProvider router={buildRouter("/login")} />);
     await fillAndSubmit("0300111111", "WRONG");
     expect(await screen.findByText(/invalid phone or password/i)).toBeInTheDocument();
-    // Still on /login (no navigation).
     expect(screen.queryByTestId("rider-home")).toBeNull();
   });
 
-  it("client-side phone validation blocks non-10-digit input (no fetch fires)", async () => {
-    // Override handler to fail the test loudly if it's ever hit.
+  it("client-side phone validation blocks input outside 9\u201311 digits (no fetch fires)", async () => {
+    // Fail loudly if the handler is ever hit — client-side validation must
+    // block submission before any network call is attempted.
     let hit = false;
     server.use(
       http.post(API_LOGIN_URL, () => {
@@ -116,24 +116,22 @@ describe("login failure paths", () => {
 
 describe("D15 — response role normalization", () => {
   it("profile.role takes precedence over top-level data.role", async () => {
-    // Override: return conflicting roles. Old broken behavior would
-    // overwrite profile.role with data.role → "operator" → wrong home.
-    // Fixed behavior: profile.role wins → "Admin" → /admin.
+    // Return conflicting roles so the test can prove that profile.role wins
+    // over the top-level data.role when both are present.
     server.use(
       http.post(API_LOGIN_URL, () =>
         HttpResponse.json({
-          role: "operator", // top-level (older shape)
-          profile: { role: "Admin", name: "Split-Brain" }, // canonical
+          role: "operator",
+          profile: { role: "Admin", name: "Split-Brain" },
         }),
       ),
     );
     render(<RouterProvider router={buildRouter("/login")} />);
     await fillAndSubmit("0300000000", "any");
     expect(await screen.findByTestId("admin-home")).toBeInTheDocument();
-    // Envelope reflects the canonical role, not the top-level one.
-    const env = JSON.parse(
-      window.localStorage.getItem(SESSION_STORAGE_KEY)!,
-    ) as { profile: { role: string } };
+    const env = JSON.parse(window.localStorage.getItem(SESSION_STORAGE_KEY)!) as {
+      profile: { role: string };
+    };
     expect(env.profile.role).toBe("Admin");
   });
 
@@ -156,13 +154,13 @@ describe("F1 defense in depth — Customer seed login terminates cleanly", () =>
   it("logging in as Customer lands at /login with empty storage (no loop)", async () => {
     render(<RouterProvider router={buildRouter("/login")} />);
     await fillAndSubmit("0300444444", "customer");
-    // roleHome('Customer') === '/login' → navigate('/login') → PublicOnly
-    // detects unknown role → useEffect(logout) → envelope cleared. LoginPage
-    // stays mounted. Test passes iff we don't throw "Maximum update depth".
+    // Because roleHome("Customer") returns /login, the initial navigate lands
+    // on the login route where PublicOnly detects the unknown role and clears
+    // the session in its effect. The test passes only if that loop terminates
+    // rather than throwing a React "Maximum update depth" error.
     await waitFor(() => {
       expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
     });
-    // Login form still visible after the loop-break.
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 });

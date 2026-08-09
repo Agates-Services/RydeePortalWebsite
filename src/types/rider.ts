@@ -1,5 +1,3 @@
-// Rider domain types. Moved from src/app/data/mockData.ts in Checkpoint 4
-// (see docs/design/migration-plan.md and ADR-0001).
 export type RiderState = "idle" | "arriving" | "dispatching";
 
 export interface ActiveRider {
@@ -21,4 +19,20 @@ export interface PendingRider {
   area: string;
   documents: string[];
   pin: string;
+}
+
+export type RiderStatus = "active" | "pending" | "blocked" | "offboarded";
+
+export interface AllRidersRow {
+  id: number;
+  name: string;
+  phone: string;
+  cnic: string;
+  status: RiderStatus;
+  area: string;
+  joinedAt: string; // ISO YYYY-MM-DD
+  // Optional detail fields shown in the row-detail drawer; the drawer renders a dash when the wire omits them.
+  dob?: string;
+  documents?: string[];
+  pin?: string;
 }

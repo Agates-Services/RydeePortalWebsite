@@ -1,9 +1,5 @@
-// Foundation smoke — proves the msw/node harness is wired to
-// src/mocks/handlers and jsdom is up. The real regression suite lives in
-// tests/regression/**. If this file breaks, the setup is broken; nothing
-// downstream will run correctly.
 import { describe, expect, it } from "vitest";
-import { API_LOGIN_URL } from "@/lib/config";
+import { API_LOGIN_URL } from "@/api/auth";
 
 describe("test foundation (D12)", () => {
   it("boots jsdom (window + localStorage available)", () => {
@@ -19,7 +15,7 @@ describe("test foundation (D12)", () => {
       credentials: "include",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { role: string };
-    expect(body.role).toBe("Rider");
+    const body = (await res.json()) as { profile: { role: string } };
+    expect(body.profile.role).toBe("rider");
   });
 });

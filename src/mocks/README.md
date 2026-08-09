@@ -1,7 +1,7 @@
 # Auth Mocks (MSW 2.x)
 
 Developer guide for the MSW handlers under this directory. Living contract
-is [ADR-0003](../../docs/adr/0003-mock-api-msw.md); this file is the
+is [ADR-0003](../../local-docs/adr/0003-mock-api-msw.md); this file is the
 practical how-to.
 
 ## What MSW does here
@@ -34,14 +34,14 @@ You need **no backend running**. Watch the browser console for
 
 ## Seed users
 
-The login form takes **phone + password** (10-digit phone, per the
-client-side `/^\d{10}$/` check in `LoginPage.tsx`).
+The login form takes **phone + password** (9\u201311 digit phone, per the
+client-side `/^\d{9,11}$/` check in `LoginPage.tsx`).
 
-| Role | Phone | Password | What you'll see |
-|---|---|---|---|
-| Rider | `0300111111` | `rider` | Lands on `/rider` (RiderDashboard) |
-| Admin | `0300222222` | `admin` | Lands on `/admin` (AdminDashboard) |
-| Operator | `0300333333` | `operator` | Lands on `/operator` (OperatorDashboard) |
+| Role     | Phone        | Password   | What you'll see                      |
+| -------- | ------------ | ---------- | ------------------------------------ |
+| Rider    | `0300111111` | `rider`    | Lands on `/rider` (RiderDashboard)   |
+| Admin    | `0300222222` | `admin`    | Lands on `/admin` (Dashboard)        |
+| Operator | `0300333333` | `operator` | Lands on `/operator` (Dashboard)     |
 | Customer | `0300444444` | `customer` | Bounces back to `/login` (see below) |
 
 ### About the Customer seed
@@ -85,17 +85,19 @@ read/write helpers. Consequences for local mock-based dev:
 
 Server-side revocation (`/me`) and real token-based auth are still
 deferred (D9-remainder + D17 in
-[`docs/design/migration-plan.md`](../../docs/design/migration-plan.md)).
+[`local-docs/design/migration-plan.md`](../../local-docs/design/migration-plan.md)).
 
 ## Mocked endpoint contract
 
-URLs come from [`src/lib/config.ts`](../lib/config.ts) — mock and app
-share the exact same constants, so endpoint drift is impossible.
+URLs come from the per-feature modules under [`src/api/`](../api/) —
+`src/api/auth.ts` for the auth endpoints and `src/api/riders.ts` for the
+rider endpoints. The mock handlers import the same URL constants the
+pages use, so endpoint drift is impossible.
 
-| Method + URL | Request body | Success (200) | Failure |
-|---|---|---|---|
-| `POST` `API_LOGIN_URL` | `{ phone: string, password: string }` | `{ role: string, profile: Profile }` | `401` text `"Invalid phone or password"` |
-| `POST` `API_REGISTER_URL` | `{ name, email, phone, dob, address, password, role }` | `{ ok: true, email, role }` | `400` text `"Missing required fields"` |
+| Method + URL              | Request body                                           | Success (200)                        | Failure                                  |
+| ------------------------- | ------------------------------------------------------ | ------------------------------------ | ---------------------------------------- |
+| `POST` `API_LOGIN_URL`    | `{ phone: string, password: string }`                  | `{ role: string, profile: Profile }` | `401` text `"Invalid phone or password"` |
+| `POST` `API_REGISTER_URL` | `{ name, email, phone, dob, address, password, role }` | `{ ok: true, email, role }`          | `400` text `"Missing required fields"`   |
 
 All requests include `credentials: "include"` (cookie flow ready for the
 real backend). Handlers currently ignore cookies; add if backend introduces
@@ -105,15 +107,16 @@ session cookies MSW must simulate.
 
 1. Create `src/mocks/handlers/<domain>.ts` — one file per backend domain
    (`auth`, `riders`, …). Export a `<domain>Handlers` array.
-2. Build URLs from `src/lib/config.ts` constants. Add the constant there
-   if it doesn't exist; do **not** hard-code URLs in handler files.
+2. Build URLs from `src/api/<feature>.ts` constants. Add the endpoint
+   path + composed URL constant there if it doesn't exist; do **not**
+   hard-code URLs in handler files.
 3. Register the array in [`handlers/index.ts`](./handlers/index.ts):
    ```ts
    import { ridersHandlers } from "./riders";
    export const handlers = [...authHandlers, ...ridersHandlers];
    ```
 4. Update the contract table in
-   [ADR-0003](../../docs/adr/0003-mock-api-msw.md) — the ADR is the
+   [ADR-0003](../../local-docs/adr/0003-mock-api-msw.md) — the ADR is the
    living contract and must not drift from the code.
 5. If your handler introduces new response shapes, mirror them in
    [`src/types/`](../types/) so the app + tests share types.
@@ -122,7 +125,7 @@ session cookies MSW must simulate.
 
 **Login returns 401 with credentials I know are correct**
 
-- Phone must be **exactly 10 digits**. `LoginPage` blocks submit
+- Phone must be **9\u201311 digits**. `LoginPage` blocks submit
   otherwise; if a client bypasses that check, handlers still 401 on
   mismatch. Check the seed table above.
 - Password is case-sensitive.
@@ -139,9 +142,16 @@ session cookies MSW must simulate.
 
 **I want to hit the real backend**
 
-Set `VITE_ENABLE_MSW=false` (or delete the line) in `.env`. Fetches now
-pass through to whatever `VITE_API_LOGIN_URL` / `VITE_API_REGISTER_URL`
-point at — no code change.
+Set `VITE_ENABLE_MSW=false` in `.env`. Fetches now pass through to
+`VITE_API_BASE_URL` (the endpoint paths are hard-coded in
+`src/api/<feature>.ts` alongside the fetch call sites) — no code change.
+
+If the real backend has broken CORS, set `VITE_API_BASE_URL=` (empty) and
+`VITE_DEV_PROXY_TARGET=<upstream-url>` instead. The Vite dev server then
+proxies `/user`, `/register` and `/GetAll` to that target with
+`changeOrigin` + cookie-domain rewrite to `localhost`, keeping the browser
+same-origin. Only active in `npm run dev`; production builds are unaffected.
+See `.env.example` mode (b).
 
 **A non-auth request errors "Uncaught in fetch"**
 
@@ -151,6 +161,6 @@ real network request is failing (not MSW-related).
 
 ## References
 
-- [ADR-0003 — Mock API via MSW 2.x](../../docs/adr/0003-mock-api-msw.md) — living contract
-- [ADR-0002 — Routing & Auth](../../docs/adr/0002-routing-and-auth.md) — role → route table
+- [ADR-0003 — Mock API via MSW 2.x](../../local-docs/adr/0003-mock-api-msw.md) — living contract
+- [ADR-0002 — Routing & Auth](../../local-docs/adr/0002-routing-and-auth.md) — role → route table
 - [MSW docs](https://mswjs.io/docs/) — official 2.x reference

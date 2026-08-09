@@ -1,19 +1,20 @@
-// Extracted 2026-07-30 (D8 Phase 2): pre-refactor Admin/Operator/Rider
-// dashboards each open with a byte-for-byte duplicated <header>. This
-// organism folds them into one component driven by props.
+// Shared header used by the Admin, Operator, and Rider dashboards.
 import { Logo } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 interface Props {
-  /** Optional role badge — omit for RiderDashboard which had no badge. */
+  /** Optional role badge; omit to render the header without one. */
   roleLabel?: string;
-  /** Displayed on ≥sm; hidden on mobile. */
+  /** Displayed on small breakpoints and up; hidden on mobile. */
   userName?: string | null;
   onLogout: () => void;
 }
 
 export function DashboardHeader({ roleLabel, userName, onLogout }: Props) {
+  const { t } = useTranslation();
   return (
     <header className="w-full flex items-center justify-between px-6 py-4 sticky top-0 z-10 bg-card border-b border-border">
       <div className="flex items-center gap-4">
@@ -31,6 +32,7 @@ export function DashboardHeader({ roleLabel, userName, onLogout }: Props) {
         {userName && (
           <span className="text-sm hidden sm:block text-muted-foreground">{userName}</span>
         )}
+        <LanguageSwitcher />
         <Button
           type="button"
           variant="secondary"
@@ -38,7 +40,7 @@ export function DashboardHeader({ roleLabel, userName, onLogout }: Props) {
           onClick={onLogout}
           className="rounded-xl px-4 h-9 text-muted-foreground hover:text-primary bg-muted hover:bg-secondary"
         >
-          Sign out
+          {t("common.signOut")}
         </Button>
       </div>
     </header>

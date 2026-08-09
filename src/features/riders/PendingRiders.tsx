@@ -1,56 +1,64 @@
-// D8 Phase 3 restyle: full form migration.
-// - Native <select> styled with shadcn tokens (rider-select, area-select) — kept
-//   native to keep gzip inside the +8-12 kB budget; Radix Select+popper adds ~20 kB.
-// - Div-as-checkbox -> Radix Checkbox (critical a11y fix: keyboard + SR).
-// - window.confirm -> shadcn AlertDialog (destructive, focus-trapped).
-// - Inline "Saved" pill -> live-region banner (role=status, auto-dismiss ~2s).
-// - Buttons via shadcn Button variants; all JS hover handlers removed.
-import { useState, useEffect } from "react";
-import { API_GET_UNREGISTERED_RIDERS_URL } from "@/lib/config";
-import { KARACHI_AREAS, VERIFICATION_DOCS } from "@/features/riders/constants";
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { Search } from "lucide-react";
+import { activateRider, getUnregisteredRiders, updateUser } from "@/api/riders";
 import type { PendingRider } from "@/types/rider";
-import { BackButton, Logo } from "@/components/shared";
-import { DatePickerField } from "@/components/DatePickerField";
+import { formatCnic, normalizeCnicInput } from "@/features/riders/cnic";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RiderProfileCard, BlockRiderAction } from "@/features/riders/RiderProfileCard";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { KARACHI_AREAS } from "@/features/riders/constants";
+import { useDebounced } from "@/features/riders/useDebounced";
 
-function calcAge(dob: string): number {
-  const birth = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
-
-function generatePin(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
+const AREA_ITEMS = KARACHI_AREAS.map((a) => (
+  <SelectItem key={a} value={a}>
+    {a}
+  </SelectItem>
+));
 
 interface UnregisteredRidersResponse {
   riders?: Array<Record<string, unknown>>;
 }
 
+const PAGE_SIZES = [10, 25, 50, 100] as const;
+type PageSize = (typeof PAGE_SIZES)[number];
+const DEFAULT_PAGE_SIZE: PageSize = 10;
+
+type SortKey = "name" | "phone" | "cnic" | "status";
+type SortDir = "asc" | "desc";
+interface SortState {
+  key: SortKey;
+  dir: SortDir;
+}
+const DEFAULT_SORT: SortState = { key: "name", dir: "asc" };
+
+function compare(a: PendingRider, b: PendingRider, key: SortKey, dir: SortDir): number {
+  const av = key === "status" ? "pending" : (a[key] ?? "");
+  const bv = key === "status" ? "pending" : (b[key] ?? "");
+  const cmp = String(av).localeCompare(String(bv), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  return dir === "asc" ? cmp : -cmp;
+}
+
 function toPendingRider(raw: Record<string, unknown>, idx: number): PendingRider {
-  // Wire shape reconciliation (D18): backend contract only firmly guarantees
-  // name / phone / activation_status (see ADR-0003). id / dob / cnic /
-  // documents / pin are best-effort — fall back to page-local defaults when
-  // absent so the review form still renders.
   const id = typeof raw.id === "number" ? raw.id : idx + 1;
   const documents = Array.isArray(raw.documents)
     ? (raw.documents as unknown[]).filter((d): d is string => typeof d === "string")
@@ -61,7 +69,6 @@ function toPendingRider(raw: Record<string, unknown>, idx: number): PendingRider
     phone: typeof raw.phone === "string" ? raw.phone : "",
     dob: typeof raw.dob === "string" ? raw.dob : "",
     cnic: typeof raw.cnic === "string" ? raw.cnic : "",
-    // Wire alias (2026-07-30): backend Profile uses `rideArea`; accept either.
     area:
       typeof raw.area === "string"
         ? raw.area
@@ -74,79 +81,92 @@ function toPendingRider(raw: Record<string, unknown>, idx: number): PendingRider
 }
 
 function isPending(raw: Record<string, unknown>): boolean {
-  // Wire alias (2026-07-30): backend may send string `activation_status` or
-  // boolean `activated`. Resolution rule (see ADR-0003 riders row):
-  //   1. If activation_status is present & non-empty, IT WINS (case-insensitive
-  //      match against "pending").
-  //   2. Otherwise, if activated === true, treat as ACTIVE → NOT pending.
-  //   3. Otherwise, treat as pending (endpoint returns the unregistered
-  //      subset — no explicit status means unregistered).
   const rawStatus = raw.activation_status ?? raw.activationStatus;
-  const status = String(rawStatus ?? "").toLowerCase().trim();
-  if (status !== "") {
-    return status === "pending";
-  }
-  if (raw.activated === true) {
-    return false;
-  }
+  const status = String(rawStatus ?? "")
+    .toLowerCase()
+    .trim();
+  if (status !== "") return status === "pending";
+  if (raw.activated === true) return false;
   return true;
 }
 
-export default function PendingRiders({ onBack }: { onBack: () => void }) {
+export default function PendingRiders() {
+  const { t } = useTranslation();
   const [riders, setRiders] = useState<PendingRider[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [form, setForm] = useState<PendingRider | null>(null);
-  const [blocked, setBlocked] = useState<number[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  const [searchInput, setSearchInput] = useState("");
+  const [areaFilter, setAreaFilter] = useState("all");
+  const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
+  const debouncedSearch = useDebounced(searchInput, 300);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, areaFilter, pageSize, sort]);
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSort((prev) => {
+      if (prev.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return DEFAULT_SORT;
+    });
+  }, []);
+
+  const ariaSortFor = (key: SortKey): "ascending" | "descending" | "none" => {
+    if (sort.key !== key) return "none";
+    return sort.dir === "asc" ? "ascending" : "descending";
+  };
+
+  const filteredRiders = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    const out = riders.filter((r) => {
+      if (areaFilter !== "all" && r.area !== areaFilter) return false;
+      if (q === "") return true;
+      return (
+        r.name.toLowerCase().includes(q) ||
+        r.phone.toLowerCase().includes(q) ||
+        r.cnic.toLowerCase().includes(q) ||
+        r.area.toLowerCase().includes(q)
+      );
+    });
+    return [...out].sort((a, b) => compare(a, b, sort.key, sort.dir));
+  }, [riders, debouncedSearch, areaFilter, sort]);
 
   useEffect(() => {
     let cancelled = false;
-
     const load = async (): Promise<void> => {
       try {
-        const response = await fetch(API_GET_UNREGISTERED_RIDERS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || response.statusText || "NO RESPONSE");
-        }
-
-        const data = (await response.json()) as UnregisteredRidersResponse;
+        const data = (await getUnregisteredRiders()) as UnregisteredRidersResponse;
         if (!data || !Array.isArray(data.riders)) {
-          throw new Error("Invalid response shape");
+          throw new Error(t("riders.errors.invalidResponse"));
         }
-
-        const pending = data.riders
-          .filter(isPending)
-          .map((r, i) => toPendingRider(r, i));
-
+        const pending = data.riders.filter(isPending).map((r, i) => toPendingRider(r, i));
         if (cancelled) return;
         setRiders(pending);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
-        setLoadError(err instanceof Error ? err.message : "Failed to load riders");
+        setLoadError(err instanceof Error ? err.message : t("riders.errors.loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     void load();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 2000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setNotice(null), 2000);
+    return () => clearTimeout(timer);
   }, [notice]);
 
   const selectRider = (id: number) => {
@@ -155,334 +175,347 @@ export default function PendingRiders({ onBack }: { onBack: () => void }) {
     setForm(rider ? { ...rider } : null);
   };
 
-  const setField = (field: keyof PendingRider, value: string | string[]) => {
-    setForm((f) => (f ? { ...f, [field]: value } : f));
-  };
-
-  const toggleDoc = (doc: string) => {
-    if (!form) return;
-    const docs = form.documents.includes(doc)
-      ? form.documents.filter((d) => d !== doc)
-      : [...form.documents, doc];
-    setField("documents", docs);
-  };
-
-  const handleGeneratePin = () => {
-    setField("pin", generatePin());
+  const handleRowKeyDown = (e: ReactKeyboardEvent<HTMLTableRowElement>, id: number) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      selectRider(id);
+    }
   };
 
   const confirmBlock = () => {
     if (!form) return;
-    setBlocked((b) => [...b, form.id]);
     setRiders((r) => r.filter((x) => x.id !== form.id));
     setSelectedId(null);
     setForm(null);
-    setNotice("Rider blocked");
+    setNotice(t("riders.pending.noticeBlocked"));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form) return;
-    setRiders((r) => r.map((x) => (x.id === form.id ? { ...form } : x)));
-    setNotice("Changes saved");
+    const original = riders.find((x) => x.id === form.id);
+    if (!original) return;
+    const patch: Record<string, unknown> = {};
+    (Object.keys(form) as Array<keyof PendingRider>).forEach((k) => {
+      if (k === "id" || k === "phone") return;
+      const a = form[k];
+      const b = original[k];
+      if (k === "cnic") {
+        if (normalizeCnicInput(String(a)) !== normalizeCnicInput(String(b))) patch[k] = a;
+        return;
+      }
+      if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length || a.some((v, i) => v !== b[i])) patch[k] = a;
+      } else if (a !== b) {
+        patch[k] = a;
+      }
+    });
+    if (Object.keys(patch).length === 0) {
+      setNotice(t("riders.pending.noticeSaved"));
+      return;
+    }
+    try {
+      await updateUser(form.phone, "rider", patch);
+      setRiders((r) => r.map((x) => (x.id === form.id ? { ...form } : x)));
+      setNotice(t("riders.pending.noticeSaved"));
+    } catch {
+      setNotice(t("riders.pending.noticeSaveFailed"));
+    }
   };
 
-  const activeRiders = riders.filter((r) => !blocked.includes(r.id));
+  const [activating, setActivating] = useState(false);
+
+  const handleActivate = async () => {
+    if (!form) return;
+    setActivating(true);
+    try {
+      const res = await activateRider(form.phone, form.pin);
+      if (res.success) {
+        setRiders((r) => r.filter((x) => x.id !== form.id));
+        setSelectedId(null);
+        setForm(null);
+        setNotice(t("riders.pending.noticeActivated", { name: form.name }));
+      } else {
+        setNotice(res.error ?? t("riders.pending.noticeActivateFailed"));
+      }
+    } catch {
+      setNotice(t("riders.pending.noticeActivateFailed"));
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const pageCount = Math.max(1, Math.ceil(filteredRiders.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageRows = filteredRiders.slice(pageStart, pageStart + pageSize);
+  const noMatches = riders.length > 0 && filteredRiders.length === 0;
 
   return (
-    <div
-      className="min-h-screen flex flex-col bg-background"
-      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-    >
-      {/* Header */}
-      <header className="w-full flex items-center justify-between px-6 py-4 bg-card border-b border-border">
-        <div className="flex items-center gap-4">
-          <BackButton onClick={onBack} label="Dashboard" />
-          <Logo size="sm" />
-        </div>
-        <Badge
-          variant="outline"
-          className="rounded-full px-3 py-1.5 text-xs font-semibold bg-warning-muted text-warning border-warning/25"
+    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+      {loading && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-2xl border border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground"
         >
-          {activeRiders.length} pending
-        </Badge>
-      </header>
-
-      <main className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
-        <h1 className="text-2xl font-bold mb-1 text-foreground">Pending Riders</h1>
-        <p className="text-sm mb-6 text-muted-foreground">
-          Select a rider to review and complete their registration.
-        </p>
-
-        {loading && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="rounded-2xl border border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground"
-          >
-            Loading pending riders…
-          </div>
-        )}
-
-        {!loading && loadError && (
-          <div
-            role="alert"
-            className="rounded-2xl border border-destructive/25 bg-destructive/10 px-6 py-6 text-sm text-destructive"
-          >
-            {loadError}
-          </div>
-        )}
-
-        {!loading && !loadError && activeRiders.length === 0 && (
-          <Card className="rounded-2xl p-10 flex-col items-center justify-center text-center border-border shadow-none">
-            <p className="text-sm font-medium text-foreground">No pending riders</p>
-            <p className="text-xs mt-1 text-muted-foreground">
-              All rider applications have been reviewed.
-            </p>
-          </Card>
-        )}
-
-        {!loading && !loadError && activeRiders.length > 0 && (
-        <>
-        {/* Rider picker — native <select> styled with shadcn tokens */}
-        <div className="flex flex-col gap-1.5 mb-8">
-          <Label htmlFor="rider-select" className="text-foreground-label">
-            Select pending rider
-          </Label>
-          <select
-            id="rider-select"
-            value={selectedId != null ? String(selectedId) : ""}
-            onChange={(e) => selectRider(Number(e.target.value))}
-            className="select-field"
-          >
-            <option value="" disabled>Choose a rider to review…</option>
-            {activeRiders.map((r) => (
-              <option key={r.id} value={String(r.id)}>
-                {r.name} — {r.phone}
-              </option>
-            ))}
-          </select>
+          {t("riders.pending.loading")}
         </div>
+      )}
 
-        {/* Rider form */}
-        {form && (
-          <Card className="rounded-2xl p-7 gap-5 card-elevated border-border">
-            <h2 className="text-lg font-semibold text-card-foreground mb-1">Rider Profile</h2>
+      {!loading && loadError && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-destructive/25 bg-destructive/10 px-6 py-6 text-sm text-destructive"
+        >
+          {loadError}
+        </div>
+      )}
 
-            <FormField id="pr-name" label="Full name">
-              <Input
-                id="pr-name"
-                value={form.name}
-                onChange={(e) => setField("name", e.target.value)}
-                className="h-auto rounded-xl px-4 py-3 text-sm"
-              />
-            </FormField>
+      {!loading && !loadError && riders.length === 0 && (
+        <Card className="rounded-2xl p-10 flex-col items-center justify-center text-center border-border shadow-none">
+          <p className="text-sm font-medium text-foreground">{t("riders.pending.emptyTitle")}</p>
+          <p className="text-xs mt-1 text-muted-foreground">{t("riders.pending.emptyHint")}</p>
+        </Card>
+      )}
 
-            <FormField id="pr-phone" label="Phone number">
-              <Input
-                id="pr-phone"
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setField("phone", e.target.value)}
-                className="h-auto rounded-xl px-4 py-3 text-sm"
-              />
-            </FormField>
-
-            {/* Area — native <select> styled with shadcn tokens */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-area" className="text-foreground-label">
-                Geographic area of interest
-              </Label>
-              <select
-                id="pr-area"
-                value={form.area || ""}
-                onChange={(e) => setField("area", e.target.value)}
-                className="select-field"
-              >
-                <option value="" disabled>Select area…</option>
-                {KARACHI_AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* DOB + Age side by side */}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField id="pr-dob" label="Date of birth">
-                {/* Iter 4.1 hotfix: shadcn-canonical DatePickerField replaces
-                    the native <input type=date>. State stays ISO YYYY-MM-DD
-                    internally (calcAge + seeds use new Date(dob)); the picker
-                    displays DD/MM/YYYY on the outline button. Bounds
-                    1940..currentYear-18 (riders are 18+). */}
-                <DatePickerField
-                  id="pr-dob"
-                  value={form.dob ? new Date(form.dob) : undefined}
-                  onChange={(d) => setField("dob", d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "")}
-                  fromYear={1940}
-                  toYear={new Date().getFullYear() - 18}
-                  placeholder="DD/MM/YYYY"
-                  ariaLabel="Date of birth"
+      {!loading && !loadError && riders.length > 0 && (
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-[3fr_2fr]">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative w-full max-w-sm">
+                <Label htmlFor="pending-search" className="sr-only">
+                  {t("riders.pending.searchSr")}
+                </Label>
+                <Search
+                  className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70"
+                  aria-hidden="true"
                 />
-              </FormField>
-              <FormField id="pr-age" label="Age (calculated)">
                 <Input
-                  id="pr-age"
-                  readOnly
-                  value={form.dob ? `${calcAge(form.dob)} years` : "—"}
-                  className="h-auto rounded-xl px-4 py-3 text-sm opacity-70 cursor-default read-only:focus-visible:ring-0 read-only:focus-visible:border-input"
-                  tabIndex={-1}
-                  aria-readonly="true"
+                  id="pending-search"
+                  type="search"
+                  placeholder={t("riders.pending.searchPlaceholder")}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="h-9 w-full rounded-lg ps-9 pe-3 text-sm bg-card"
                 />
-              </FormField>
-            </div>
-
-            <FormField id="pr-cnic" label="CNIC number">
-              <Input
-                id="pr-cnic"
-                value={form.cnic}
-                onChange={(e) => setField("cnic", e.target.value)}
-                placeholder="XXXXX-XXXXXXX-X"
-                className="h-auto rounded-xl px-4 py-3 text-sm"
-              />
-            </FormField>
-
-            {/* Verification documents — Radix Checkbox (major a11y fix) */}
-            <fieldset className="flex flex-col gap-2 border-0 p-0 m-0">
-              <legend className="text-sm font-medium text-foreground-label mb-1">
-                Verification documents
-              </legend>
-              <div className="rounded-xl p-4 flex flex-col gap-2.5 bg-input-background border border-border">
-                {VERIFICATION_DOCS.map((doc) => {
-                  const cid = `pr-doc-${doc.replace(/\s+/g, "-").toLowerCase()}`;
-                  const checked = form.documents.includes(doc);
-                  return (
-                    <div key={doc} className="flex items-center gap-3">
-                      <Checkbox
-                        id={cid}
-                        checked={checked}
-                        onCheckedChange={() => toggleDoc(doc)}
-                      />
-                      <Label
-                        htmlFor={cid}
-                        className={
-                          "text-sm flex-1 cursor-pointer " +
-                          (checked ? "text-foreground" : "text-muted-foreground")
-                        }
-                      >
-                        {doc}
-                      </Label>
-                      {checked && (
-                        <Badge
-                          variant="secondary"
-                          className="ml-auto rounded-full px-2 py-0.5 text-xs bg-[color:var(--brand-bright)]/12 text-primary border-transparent"
-                        >
-                          Received
-                        </Badge>
-                      )}
-                    </div>
-                  );
-                })}
               </div>
-            </fieldset>
+              <Select value={areaFilter} onValueChange={setAreaFilter}>
+                <SelectTrigger
+                  id="pending-area"
+                  aria-label={t("riders.common.filterByArea")}
+                  className="h-9 w-full max-w-[16rem] rounded-lg border border-input bg-card px-3 text-sm"
+                >
+                  <SelectValue placeholder={t("riders.common.allAreas")} />
+                </SelectTrigger>
+                <SelectContent className="duration-0">
+                  <SelectItem value="all">{t("riders.common.allAreas")}</SelectItem>
+                  {AREA_ITEMS}
+                </SelectContent>
+              </Select>
+            </div>
+            <Card className="rounded-2xl border-border overflow-hidden p-0">
+              {noMatches ? (
+                <div className="px-6 py-12 text-center">
+                  <p className="text-sm font-medium text-foreground">
+                    {t("riders.pending.noMatchesTitle")}
+                  </p>
+                  <p className="text-xs mt-1 text-muted-foreground">
+                    {t("riders.pending.noMatchesHint", { q: debouncedSearch })}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm table-fixed">
+                    <caption className="sr-only">{t("riders.pending.caption")}</caption>
+                    <thead className="bg-switch-background text-start text-[11px] font-semibold text-foreground/70 uppercase tracking-wider">
+                      <tr>
+                        <SortableTh
+                          sortKey="name"
+                          ariaSort={ariaSortFor("name")}
+                          onSort={toggleSort}
+                          className="ps-6 pe-4 py-3 w-[32%]"
+                        >
+                          {t("riders.common.columns.name")}
+                        </SortableTh>
+                        <SortableTh
+                          sortKey="phone"
+                          ariaSort={ariaSortFor("phone")}
+                          onSort={toggleSort}
+                          className="px-4 py-3 w-[22%]"
+                        >
+                          {t("riders.common.columns.phone")}
+                        </SortableTh>
+                        <SortableTh
+                          sortKey="cnic"
+                          ariaSort={ariaSortFor("cnic")}
+                          onSort={toggleSort}
+                          className="px-4 py-3 w-[26%]"
+                        >
+                          {t("riders.common.columns.cnic")}
+                        </SortableTh>
+                        <SortableTh
+                          sortKey="status"
+                          ariaSort={ariaSortFor("status")}
+                          onSort={toggleSort}
+                          className="ps-4 pe-6 py-3 w-[20%]"
+                          align="end"
+                        >
+                          {t("riders.common.columns.status")}
+                        </SortableTh>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {pageRows.map((r) => {
+                        const selected = r.id === selectedId;
+                        return (
+                          <tr
+                            key={r.id}
+                            tabIndex={0}
+                            role="button"
+                            aria-pressed={selected}
+                            aria-label={t("riders.pending.rowReviewAria", {
+                              name: r.name || "rider",
+                            })}
+                            onClick={() => selectRider(r.id)}
+                            onKeyDown={(e) => handleRowKeyDown(e, r.id)}
+                            className={
+                              "h-12 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+                              (selected ? "bg-muted/50 shadow-sm" : "hover:bg-muted/30")
+                            }
+                          >
+                            <th
+                              scope="row"
+                              className="ps-6 pe-4 py-3 font-medium text-foreground text-start"
+                            >
+                              {r.name || "—"}
+                            </th>
+                            <td className="px-4 py-3 font-mono text-xs">{r.phone || "—"}</td>
+                            <td className="px-4 py-3 font-mono text-xs">
+                              {r.cnic ? formatCnic(r.cnic) : "—"}
+                            </td>
+                            <td className="ps-4 pe-6 py-3 text-end">
+                              <Badge
+                                variant="outline"
+                                className="gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full bg-warning-muted text-warning border-warning/25"
+                              >
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full bg-current"
+                                  aria-hidden="true"
+                                />
+                                {t("riders.common.badges.pending")}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-            <FormField id="pr-pin" label="Access PIN">
-              <Input
-                id="pr-pin"
-                value={form.pin}
-                readOnly
-                placeholder="Not yet generated"
-                className={
-                  "h-auto rounded-xl px-4 py-3 text-sm font-mono tracking-[0.25em] cursor-default read-only:focus-visible:ring-0 read-only:focus-visible:border-input " +
-                  (form.pin ? "" : "opacity-50")
-                }
-                aria-readonly="true"
-              />
-            </FormField>
-
-            {/* Action buttons */}
-            <div className="flex gap-3 mt-2 flex-wrap">
-              <Button
-                type="button"
-                onClick={handleGeneratePin}
-                size="lg"
-                className="flex-1 rounded-xl py-3 h-auto text-sm font-semibold shadow-[0_4px_20px_rgba(13,143,110,0.30)] hover:bg-primary-hover active:bg-primary-active hover:shadow-[0_4px_28px_rgba(13,143,110,0.45)]"
-              >
-                {form.pin ? "Regenerate PIN" : "Generate PIN"}
-              </Button>
-
-              <Button
-                type="button"
-                variant="secondary"
-                size="lg"
-                onClick={handleSave}
-                className="flex-1 rounded-xl py-3 h-auto text-sm font-semibold bg-muted hover:bg-secondary text-foreground"
-              >
-                Save changes
-              </Button>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    className="rounded-xl px-5 py-3 h-auto text-sm font-semibold bg-destructive/10 text-destructive border-destructive/25 hover:bg-destructive/20 hover:text-destructive"
-                  >
-                    Block rider
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Block rider {form.name}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This rider will not be able to register. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={confirmBlock}
-                      className="bg-destructive text-white hover:bg-destructive/90"
+              {!noMatches && (
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-t border-border bg-muted/30 px-4 py-3 text-xs">
+                  <p className="text-muted-foreground">
+                    {t("riders.common.summary", {
+                      from: pageStart + 1,
+                      to: Math.min(pageStart + pageSize, filteredRiders.length),
+                      count: filteredRiders.length,
+                    })}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Label htmlFor="pending-page-size" className="text-xs text-muted-foreground">
+                      {t("riders.common.rowsPerPage")}
+                    </Label>
+                    <select
+                      id="pending-page-size"
+                      value={pageSize}
+                      onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                     >
-                      Block rider
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </Card>
-        )}
+                      {PAGE_SIZES.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        aria-label={t("riders.common.prevPage")}
+                      >
+                        ‹
+                      </Button>
+                      <span className="text-muted-foreground px-2">
+                        {t("riders.common.page", { cur: currentPage, total: pageCount })}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                        disabled={currentPage >= pageCount}
+                        aria-label={t("riders.common.nextPage")}
+                      >
+                        ›
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
 
-        {!form && (
-          <Card className="rounded-2xl p-10 flex-col items-center justify-center text-center border-border shadow-none">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 bg-warning-muted">
-              <svg
-                width="26" height="26" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                className="text-warning" aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-foreground">No rider selected</p>
-            <p className="text-xs mt-1 text-muted-foreground">
-              Choose a rider from the dropdown above to review their application.
-            </p>
-          </Card>
-        )}
-        </>
-        )}
-      </main>
+          <div>
+            {form ? (
+              <RiderProfileCard
+                form={form}
+                onChange={setForm}
+                onSave={handleSave}
+                onActivate={handleActivate}
+                activating={activating}
+                actions={<BlockRiderAction riderName={form.name} onConfirm={confirmBlock} />}
+              />
+            ) : (
+              <Card className="rounded-2xl p-10 flex-col items-center justify-center text-center border-border shadow-none">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 bg-warning-muted">
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-warning"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  {t("riders.pending.noSelectedTitle")}
+                </p>
+                <p className="text-xs mt-1 text-muted-foreground">
+                  {t("riders.pending.noSelectedHint")}
+                </p>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
 
-      {/* Live-region banner (replaces sonner toast; zero dep footprint) */}
       {notice && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 rounded-md border bg-success-muted text-success border-success/25 px-4 py-2 text-sm font-medium shadow-md"
+          className="fixed bottom-6 end-6 z-50 rounded-md border bg-success-muted text-success border-success/25 px-4 py-2 text-sm font-medium shadow-md"
         >
           {notice}
         </div>
@@ -491,21 +524,39 @@ export default function PendingRiders({ onBack }: { onBack: () => void }) {
   );
 }
 
-function FormField({
-  id,
-  label,
-  children,
-}: {
-  id: string;
-  label: string;
+interface SortableThProps {
+  sortKey: SortKey;
+  ariaSort: "ascending" | "descending" | "none";
+  onSort: (key: SortKey) => void;
+  className: string;
+  align?: "start" | "end";
   children: React.ReactNode;
-}) {
+}
+
+function SortableTh({
+  sortKey,
+  ariaSort,
+  onSort,
+  className,
+  align = "start",
+  children,
+}: SortableThProps) {
+  const indicator = ariaSort === "ascending" ? "↑" : ariaSort === "descending" ? "↓" : "↕";
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-foreground-label">
-        {label}
-      </Label>
-      {children}
-    </div>
+    <th scope="col" aria-sort={ariaSort} className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={
+          "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded " +
+          (align === "end" ? "ms-auto" : "")
+        }
+      >
+        {children}
+        <span aria-hidden="true" className={ariaSort === "none" ? "opacity-40" : "text-foreground"}>
+          {indicator}
+        </span>
+      </button>
+    </th>
   );
 }
