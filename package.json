@@ -10,6 +10,7 @@
     "check-env": "node scripts/check-env.ts",
     "prebuild": "node scripts/check-env.ts",
     "build": "vite build",
+    "build:qa": "node scripts/check-env.ts qa && vite build --mode qa",
     "dev": "vite",
     "lint": "eslint src",
     "format": "prettier --write .",

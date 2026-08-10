@@ -121,9 +121,8 @@ function renderEnvironmentErrorScreen(problems: EnvironmentProblem[]): void {
   root.appendChild(container);
 }
 
-// Dynamic import + DEV guard is the tree-shaking pattern that keeps the mocks tree out of the production bundle.
+// VITE_ENABLE_MSW is the build-time tree-shaking key: Vite statically replaces the env read, so a VITE_ENABLE_MSW=false build dead-code-eliminates the dynamic import and the mocks tree stays out of dist (real production). A VITE_ENABLE_MSW=true build is a deliberate QA/demo build that ships and boots mocks.
 async function enableMockingIfConfigured(): Promise<void> {
-  if (!import.meta.env.DEV) return;
   if (import.meta.env.VITE_ENABLE_MSW !== "true") return;
   const { worker } = await import("./mocks/browser");
   await worker.start({ onUnhandledRequest: "bypass" });
