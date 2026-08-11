@@ -1,12 +1,8 @@
-export type RiderState = "idle" | "arriving" | "dispatching";
-
 export interface ActiveRider {
   id: number;
   name: string;
   lat: number;
   lng: number;
-  state: RiderState;
-  bike: string;
   area: string;
 }
 

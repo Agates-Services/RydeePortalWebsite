@@ -10,8 +10,6 @@ const TITLE_KEYS: Record<string, string> = {
   "/admin/register": "layout.title.registerUser",
   "/admin/all-riders": "layout.title.allRiders",
   "/admin/active-riders": "layout.title.activeRiders",
-  "/admin/pending-riders": "layout.title.pendingRiders",
-  "/admin/blocked-riders": "layout.title.blockedRiders",
   "/admin/rides": "layout.title.rides",
   "/operator": "layout.title.dashboard",
 };

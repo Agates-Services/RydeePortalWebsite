@@ -5,8 +5,6 @@ import {
   Users,
   UserCog,
   Activity,
-  Ban,
-  Clock,
   Car,
   LogOut,
   ChevronsUpDown,
@@ -87,18 +85,6 @@ export function AppSidebar() {
         to: "/admin/rides",
         icon: Car,
         active: pathname.startsWith("/admin/rides"),
-      },
-      {
-        label: t("layout.nav.pendingRiders"),
-        to: "/admin/pending-riders",
-        icon: Clock,
-        active: pathname === "/admin/pending-riders",
-      },
-      {
-        label: t("layout.nav.blockedRiders"),
-        to: "/admin/blocked-riders",
-        icon: Ban,
-        active: pathname === "/admin/blocked-riders",
       },
       {
         label: t("layout.nav.users"),

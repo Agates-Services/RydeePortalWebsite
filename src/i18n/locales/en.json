@@ -16,9 +16,7 @@
       "dashboard": "Dashboard",
       "registerUser": "Register user",
       "allRiders": "All riders",
-      "activeRiders": "Active riders",
-      "pendingRiders": "Pending riders",
-      "blockedRiders": "Blocked riders",
+      "activeRiders": "Live map",
       "editRider": "Edit rider",
       "rides": "Rides",
       "rideView": "Ride",
@@ -29,9 +27,7 @@
       "dashboard": "Dashboard",
       "userManagement": "User management",
       "totalRiders": "Total riders",
-      "activeRiders": "Active riders",
-      "pendingRiders": "Pending riders",
-      "blockedRiders": "Blocked riders",
+      "activeRiders": "Live map",
       "rides": "Rides",
       "users": "Users"
     }
@@ -492,50 +488,8 @@
     },
     "active": {
       "total": "Total:",
-      "live": "Live — updates every 3s",
-      "states": {
-        "dispatching": "Dispatching",
-        "arriving": "Arriving",
-        "idle": "Idle"
-      }
-    },
-    "pending": {
-      "caption": "Pending riders",
-      "loading": "Loading pending riders…",
-      "emptyTitle": "No pending riders",
-      "emptyHint": "All rider applications have been reviewed.",
-      "searchSr": "Search pending riders",
-      "searchPlaceholder": "Search by name, phone, CNIC, or area…",
-      "noMatchesTitle": "No matches",
-      "noMatchesHint": "No pending riders match \"{{q}}\".",
-      "rowReviewAria": "Review application for {{name}}",
-      "noticeBlocked": "Rider blocked",
-      "noticeSaved": "Changes saved",
-      "noticeActivated": "{{name}} activated",
-      "noticeActivateFailed": "Failed to activate rider",
-      "noticeSaveFailed": "Failed to save changes",
-      "noSelectedTitle": "No rider selected",
-      "noSelectedHint": "Choose a rider from the table to review their application."
-    },
-    "blocked": {
-      "caption": "Blocked riders",
-      "loading": "Loading blocked riders…",
-      "emptyTitle": "No blocked riders",
-      "emptyHint": "All riders currently have access.",
-      "searchSr": "Search blocked riders",
-      "searchPlaceholder": "Search by name, phone, CNIC, or area…",
-      "noMatchesTitle": "No matches",
-      "noMatchesHint": "No blocked riders match \"{{q}}\".",
-      "rowReviewAria": "Review blocked rider {{name}}",
-      "noticeUnblocked": "Rider unblocked",
-      "noSelectedTitle": "No rider selected",
-      "noSelectedHint": "Choose a rider from the table to view their profile.",
-      "unblock": "Unblock rider",
-      "unblockDialog": {
-        "title": "Unblock rider {{name}}?",
-        "description": "This rider will be able to operate again.",
-        "confirm": "Unblock rider"
-      }
+      "live": "Live",
+      "loading": "Loading live map…"
     }
   },
   "rides": {
@@ -678,6 +632,19 @@
     "caption": "Users table with sorting and pagination",
     "errors": {
       "loadFailed": "Could not load users."
+    }
+  },
+  "errors": {
+    "boundary": {
+      "title": "Something went wrong",
+      "message": "The page failed to load. Try reloading, or head back to the dashboard.",
+      "reload": "Reload",
+      "goHome": "Go to dashboard"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "message": "The page you are looking for does not exist or has moved.",
+      "goHome": "Go to dashboard"
     }
   }
 }

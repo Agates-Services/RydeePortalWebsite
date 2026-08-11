@@ -203,7 +203,7 @@ export default function Dashboard() {
           valueClassName="text-warning"
           hint={t("dashboards.stats.pendingRiders.hint")}
           ariaLabel={t("dashboards.stats.pendingRiders.aria", { count: pending ?? "—" })}
-          onClick={() => navigate("/admin/pending-riders")}
+          onClick={() => navigate("/admin/all-riders?status=pending")}
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
@@ -219,7 +219,7 @@ export default function Dashboard() {
           valueClassName="text-destructive"
           hint={t("dashboards.stats.blockedRiders.hint")}
           ariaLabel={t("dashboards.stats.blockedRiders.aria", { count: blocked ?? "—" })}
-          onClick={() => navigate("/admin/blocked-riders")}
+          onClick={() => navigate("/admin/all-riders?status=blocked")}
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />

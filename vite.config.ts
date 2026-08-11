@@ -11,7 +11,6 @@ const PROXY_PREFIXES = [
   "/user-login",
   "/register-user",
   "/update-user",
-  "/get-all-inactive-riders",
   "/get-all-riders",
   "/activate-rider",
 ] as const;

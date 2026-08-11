@@ -8,16 +8,17 @@ import { DashboardRoute, RiderDashboardRoute } from "@/features/dashboards/route
 import {
   ActiveRidersRoute,
   AllRidersRoute,
-  BlockedRidersRoute,
-  PendingRidersRoute,
   RiderEditRoute,
 } from "@/features/riders/routes";
 import { RidesRoute, RideViewRoute } from "@/features/rides/routes";
 import { UsersRoute } from "@/features/users/routes";
+import ErrorBoundaryPage from "@/features/errors/ErrorBoundaryPage";
+import NotFoundPage from "@/features/errors/NotFoundPage";
 
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <ErrorBoundaryPage />,
     children: [
       { index: true, element: <IndexRedirect /> },
 
@@ -48,8 +49,8 @@ export const router = createBrowserRouter([
             element: <ProtectedRoute allow={["Admin", "Operator"]} />,
             children: [
               { path: "admin/active-riders", element: <ActiveRidersRoute /> },
-              { path: "admin/pending-riders", element: <PendingRidersRoute /> },
-              { path: "admin/blocked-riders", element: <BlockedRidersRoute /> },
+              { path: "admin/pending-riders", element: <Navigate to="/admin/all-riders?status=pending" replace /> },
+              { path: "admin/blocked-riders", element: <Navigate to="/admin/all-riders?status=blocked" replace /> },
               { path: "admin/all-riders", element: <AllRidersRoute /> },
               { path: "admin/riders/:phone/edit", element: <RiderEditRoute /> },
               { path: "admin/users", element: <UsersRoute /> },
@@ -65,7 +66,7 @@ export const router = createBrowserRouter([
         ],
       },
 
-      { path: "*", element: <Navigate to="/" replace /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);

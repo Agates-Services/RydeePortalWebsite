@@ -1,4 +1,3 @@
-// The mapping rules here deliberately mirror the equivalent code in PendingRiders.
 import type { AllRidersRow, RiderStatus } from "@/types/rider";
 
 const KNOWN_STATUSES: readonly RiderStatus[] = ["active", "pending", "blocked", "offboarded"];
