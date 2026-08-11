@@ -12,6 +12,7 @@ const TITLE_KEYS: Record<string, string> = {
   "/admin/active-riders": "layout.title.activeRiders",
   "/admin/rides": "layout.title.rides",
   "/operator": "layout.title.dashboard",
+  "/account/profile": "layout.title.myProfile",
 };
 
 function titleKeyFor(pathname: string): string | null {

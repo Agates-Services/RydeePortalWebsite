@@ -14,6 +14,7 @@ import { RidesRoute, RideViewRoute } from "@/features/rides/routes";
 import { UsersRoute } from "@/features/users/routes";
 import ErrorBoundaryPage from "@/features/errors/ErrorBoundaryPage";
 import NotFoundPage from "@/features/errors/NotFoundPage";
+import ProfilePage from "@/features/account/pages/ProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -62,6 +63,10 @@ export const router = createBrowserRouter([
           {
             element: <ProtectedRoute allow={["Operator"]} />,
             children: [{ path: "operator", element: <DashboardRoute /> }],
+          },
+          {
+            element: <ProtectedRoute allow={["Admin", "Operator", "Rider"]} />,
+            children: [{ path: "account/profile", element: <ProfilePage /> }],
           },
         ],
       },

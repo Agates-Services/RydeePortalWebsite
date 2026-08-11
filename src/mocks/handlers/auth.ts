@@ -21,7 +21,7 @@ interface SeedUser {
   lastCustomerID?: string;
 }
 
-const seed: SeedUser[] = [
+export const authSeed: SeedUser[] = [
   {
     phone: "0300111111",
     password: "rider",
@@ -114,7 +114,7 @@ interface RegisterBody {
 export const authHandlers = [
   http.post(API_LOGIN_URL, async ({ request }) => {
     const body = (await request.json().catch(() => ({}))) as LoginBody;
-    const user = seed.find((u) => u.phone === body.phone && u.password === body.password);
+    const user = authSeed.find((u) => u.phone === body.phone && u.password === body.password);
     if (!user) {
       return HttpResponse.text("Invalid phone or password", { status: 401 });
     }

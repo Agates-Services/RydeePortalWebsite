@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
@@ -23,6 +23,20 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [expiredNotice, setExpiredNotice] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const fromQuery = params.get("reason") === "expired";
+    let fromStorage = false;
+    try {
+      fromStorage = window.sessionStorage.getItem("rydee.expired") === "1";
+      if (fromStorage) window.sessionStorage.removeItem("rydee.expired");
+    } catch {
+      /* storage unavailable */
+    }
+    if (fromQuery || fromStorage) setExpiredNotice(true);
+  }, [location.search]);
 
   const isValidPhone = (value: string) => /^\d{9,11}$/.test(value);
 
@@ -93,6 +107,15 @@ export default function LoginPage() {
             {t("auth.login.headline")}
           </h2>
           <p className="text-sm mb-7 text-muted-foreground">{t("auth.login.subhead")}</p>
+
+          {expiredNotice && (
+            <div
+              role="status"
+              className="mb-5 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200"
+            >
+              {t("auth.login.sessionExpiredNotice")}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <FieldInput

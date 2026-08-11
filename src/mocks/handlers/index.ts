@@ -3,6 +3,7 @@ import { ridersHandlers } from "./riders";
 import { riderDocumentsHandlers } from "./riderDocuments";
 import { ridesHandlers } from "./rides";
 import { usersHandlers } from "./users";
+import { accountHandlers } from "./account";
 
 export const handlers = [
   ...authHandlers,
@@ -10,4 +11,5 @@ export const handlers = [
   ...riderDocumentsHandlers,
   ...ridesHandlers,
   ...usersHandlers,
+  ...accountHandlers,
 ];

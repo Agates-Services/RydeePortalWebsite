@@ -13,6 +13,7 @@ const PROXY_PREFIXES = [
   "/update-user",
   "/get-all-riders",
   "/activate-rider",
+  "/change-password",
 ] as const;
 
 export default defineConfig(({ command }) => {

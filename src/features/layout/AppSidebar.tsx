@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   UserPlus,
@@ -8,6 +8,7 @@ import {
   Car,
   LogOut,
   ChevronsUpDown,
+  User,
 } from "lucide-react";
 import { Logo } from "@/components/shared";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -45,6 +46,7 @@ export function AppSidebar() {
   const { t, i18n } = useTranslation();
   const isUrdu = i18n.language === "ur";
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { profile, logout } = useAuth();
   const { isMobile } = useSidebar();
   const home = roleHome(profile?.role);
@@ -159,6 +161,10 @@ export function AppSidebar() {
                 sideOffset={4}
                 className="min-w-56 rounded-lg"
               >
+                <DropdownMenuItem onSelect={() => navigate("/account/profile")}>
+                  <User />
+                  {t("common.myProfile")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => logout()}>
                   <LogOut />
                   {t("common.signOut")}

@@ -1,4 +1,5 @@
 import { environmentValidation } from "@/lib/env";
+import { clearSession } from "@/features/auth/session";
 
 const rawBase = environmentValidation.ok
   ? environmentValidation.values.VITE_API_BASE_URL
@@ -6,8 +7,29 @@ const rawBase = environmentValidation.ok
 
 const API_BASE_URL = rawBase.replace(/\/+$/, "");
 
+export const SESSION_EXPIRED_FLAG = "rydee.expired";
+
 export function joinUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
+}
+
+function isLoginUrl(url: string): boolean {
+  return url.endsWith("/user-login") || url.includes("/user-login?");
+}
+
+function handleGlobal401(url: string): void {
+  if (isLoginUrl(url)) return;
+  if (typeof window === "undefined") return;
+  clearSession();
+  try {
+    window.sessionStorage.setItem(SESSION_EXPIRED_FLAG, "1");
+  } catch {
+    /* storage unavailable */
+  }
+  const onLogin = window.location.pathname === "/login";
+  if (!onLogin) {
+    window.location.href = "/login?reason=expired";
+  }
 }
 
 class ApiError extends Error {
@@ -43,6 +65,7 @@ async function request<T>(method: Method, url: string, options: RequestOptions =
 
   if (!response.ok) {
     const text = await response.text();
+    if (response.status === 401) handleGlobal401(url);
     throw new ApiError(response.status, text, response.statusText);
   }
 
@@ -90,6 +113,7 @@ export function postMultipartWithProgress<T>(
           reject(new ApiError(xhr.status, xhr.responseText, "Invalid JSON"));
         }
       } else {
+        if (xhr.status === 401) handleGlobal401(url);
         reject(new ApiError(xhr.status, xhr.responseText, xhr.statusText));
       }
     };

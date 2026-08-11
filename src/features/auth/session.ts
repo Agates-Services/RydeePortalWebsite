@@ -63,6 +63,11 @@ export function loadSession(): Profile | null {
 
   if (Date.now() - parsed.savedAt > SESSION_MAX_AGE_MS) {
     clearSession();
+    try {
+      window.sessionStorage.setItem("rydee.expired", "1");
+    } catch {
+      /* storage unavailable */
+    }
     return null;
   }
 

@@ -6,7 +6,9 @@
     "languageSwitcher": {
       "ariaLabel": "Change language"
     },
-    "localeCode": "en-US"
+    "localeCode": "en-US",
+    "myProfile": "My profile",
+    "cancel": "Cancel"
   },
   "layout": {
     "brand": {
@@ -21,7 +23,8 @@
       "rides": "Rides",
       "rideView": "Ride",
       "users": "Users",
-      "editUser": "Edit user"
+      "editUser": "Edit user",
+      "myProfile": "My profile"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -29,7 +32,8 @@
       "totalRiders": "Total riders",
       "activeRiders": "Live map",
       "rides": "Rides",
-      "users": "Users"
+      "users": "Users",
+      "myProfile": "My profile"
     }
   },
   "auth": {
@@ -50,7 +54,8 @@
         "passwordRequired": "Please enter your password.",
         "fallback": "Unable to sign in",
         "missingProfile": "Login response missing profile"
-      }
+      },
+      "sessionExpiredNotice": "Your session has expired. Please sign in again."
     },
     "register": {
       "headline": "Register",
@@ -645,6 +650,50 @@
       "title": "Page not found",
       "message": "The page you are looking for does not exist or has moved.",
       "goHome": "Go to dashboard"
+    }
+  },
+  "account": {
+    "profile": {
+      "title": "My profile",
+      "tabs": {
+        "profile": "Profile",
+        "settings": "Settings"
+      },
+      "fields": {
+        "name": "Name",
+        "phone": "Phone",
+        "role": "Role",
+        "address": "Address",
+        "activationStatus": "Activation status"
+      },
+      "save": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "saved": "Profile saved",
+      "saveFailed": "Failed to save profile",
+      "discardTitle": "Discard unsaved changes?",
+      "discardDesc": "Your edits will be lost.",
+      "discardConfirm": "Discard"
+    },
+    "settings": {
+      "language": {
+        "title": "Language"
+      },
+      "password": {
+        "title": "Change password",
+        "current": "Current password",
+        "new": "New password",
+        "confirm": "Confirm new password",
+        "submit": "Change password",
+        "submitting": "Changing…",
+        "changed": "Password changed",
+        "mismatch": "New passwords do not match.",
+        "minLength": "Password must be at least 8 characters.",
+        "currentRequired": "Enter your current password.",
+        "changeFailed": "Could not change password.",
+        "unavailable": "Password change is not yet available.",
+        "hint": "Choose a strong password of at least 8 characters."
+      }
     }
   }
 }
