@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { KARACHI_AREAS } from "@/features/riders/constants";
 import { useDebounced } from "@/features/riders/useDebounced";
+import { stringCompare, useTableView } from "@/lib/useTableView";
 
 type StatusTab = "all" | RiderStatus;
 
@@ -80,13 +81,7 @@ function formatJoined(iso: string): string {
 }
 
 function compare(a: AllRidersRow, b: AllRidersRow, key: SortKey, dir: SortDir): number {
-  const av = a[key] ?? "";
-  const bv = b[key] ?? "";
-  const cmp = String(av).localeCompare(String(bv), undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
-  return dir === "asc" ? cmp : -cmp;
+  return stringCompare(a[key], b[key], dir);
 }
 
 function readStatusTab(sp: URLSearchParams): StatusTab {
@@ -240,29 +235,30 @@ export default function AllRiders() {
     return c;
   }, [rows]);
 
-  const filteredRows = useMemo(() => {
-    if (!rows) return [];
-    const q = debouncedSearch.trim().toLowerCase();
-    let out = statusTab === "all" ? rows : rows.filter((r) => r.status === statusTab);
-    if (areaFilter !== "all") {
-      out = out.filter((r) => r.area === areaFilter);
-    }
-    if (q !== "") {
-      out = out.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.phone.toLowerCase().includes(q) ||
-          r.cnic.toLowerCase().includes(q),
-      );
-    }
-    // Sort a copy so the memoised upstream array is never mutated in place.
-    return [...out].sort((a, b) => compare(a, b, sort.key, sort.dir));
-  }, [rows, statusTab, debouncedSearch, areaFilter, sort]);
-
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const currentPage = Math.min(page, pageCount);
-  const pageStart = (currentPage - 1) * pageSize;
-  const pageRows = filteredRows.slice(pageStart, pageStart + pageSize);
+  const q = debouncedSearch.trim().toLowerCase();
+  const filters = useMemo(
+    () => [
+      (r: AllRidersRow) => statusTab === "all" || r.status === statusTab,
+      (r: AllRidersRow) => areaFilter === "all" || r.area === areaFilter,
+      (r: AllRidersRow) =>
+        q === "" ||
+        r.name.toLowerCase().includes(q) ||
+        r.phone.toLowerCase().includes(q) ||
+        r.cnic.toLowerCase().includes(q),
+    ],
+    [statusTab, areaFilter, q],
+  );
+  const cmp = useCallback(
+    (a: AllRidersRow, b: AllRidersRow) => compare(a, b, sort.key, sort.dir),
+    [sort],
+  );
+  const { filteredRows, pageRows, pageCount, currentPage, pageStart } = useTableView(
+    rows,
+    filters,
+    cmp,
+    page,
+    pageSize,
+  );
 
   const toggleSort = useCallback((key: SortKey) => {
     setSort((prev) => {

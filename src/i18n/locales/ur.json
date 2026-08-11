@@ -21,7 +21,9 @@
       "blockedRiders": "بلاک شدہ رائیڈرز",
       "editRider": "رائیڈر ترمیم کریں",
       "rides": "سواریاں",
-      "rideView": "سواری"
+      "rideView": "سواری",
+      "users": "صارفین",
+      "editUser": "صارف میں ترمیم"
     },
     "nav": {
       "dashboard": "ڈیش بورڈ",
@@ -30,7 +32,8 @@
       "activeRiders": "ایکٹو رائیڈرز",
       "pendingRiders": "پینڈنگ رائیڈرز",
       "blockedRiders": "بلاک شدہ رائیڈرز",
-      "rides": "سواریاں"
+      "rides": "سواریاں",
+      "users": "صارفین"
     }
   },
   "auth": {
@@ -635,6 +638,46 @@
         "min": "منٹ"
       },
       "riderWithEta": "رائیڈر — {{minutes}} منٹ ({{km}} کلومیٹر)"
+    }
+  },
+  "users": {
+    "loading": "صارفین لوڈ ہو رہے ہیں…",
+    "retry": "دوبارہ کوشش کریں",
+    "search": "صارفین تلاش کریں",
+    "searchPlaceholder": "نام، فون یا ای میل تلاش کریں",
+    "filterByRole": "کردار کے حساب سے فلٹر کریں",
+    "tabs": {
+      "all": "تمام"
+    },
+    "roles": {
+      "Admin": "ایڈمن",
+      "Operator": "آپریٹر"
+    },
+    "columns": {
+      "name": "نام",
+      "phone": "فون",
+      "email": "ای میل",
+      "role": "کردار",
+      "joined": "شامل ہوا",
+      "actions": "ایکشنز"
+    },
+    "rowsPerPage": "فی صفحہ قطاریں",
+    "prevPage": "پچھلا صفحہ",
+    "nextPage": "اگلا صفحہ",
+    "page": "صفحہ {{cur}} از {{total}}",
+    "summary": "{{count}} میں سے {{from}}–{{to}} دکھائے جا رہے ہیں",
+    "summaryFiltered": "{{count}} میں سے {{from}}–{{to}} دکھائے جا رہے ہیں (کل {{total}} سے فلٹر کردہ)",
+    "rowOpenAria": "{{name}} کی ترمیم کھولیں",
+    "editUser": "ترمیم",
+    "editUserAria": "{{name}} میں ترمیم",
+    "exportCsv": "CSV ایکسپورٹ",
+    "exportCsvAria": "{{count}} قطاریں CSV کے طور پر ایکسپورٹ کریں",
+    "emptyTitle": "کوئی صارف آپ کے فلٹرز سے مماثل نہیں",
+    "emptyHint": "تلاش یا کردار ٹیب صاف کرنے کی کوشش کریں۔",
+    "clearFilters": "فلٹرز صاف کریں",
+    "caption": "ترتیب اور صفحہ بندی کے ساتھ صارفین کا جدول",
+    "errors": {
+      "loadFailed": "صارفین لوڈ نہیں ہو سکے۔"
     }
   }
 }

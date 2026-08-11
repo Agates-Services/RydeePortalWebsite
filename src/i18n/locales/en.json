@@ -21,7 +21,9 @@
       "blockedRiders": "Blocked riders",
       "editRider": "Edit rider",
       "rides": "Rides",
-      "rideView": "Ride"
+      "rideView": "Ride",
+      "users": "Users",
+      "editUser": "Edit user"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -30,7 +32,8 @@
       "activeRiders": "Active riders",
       "pendingRiders": "Pending riders",
       "blockedRiders": "Blocked riders",
-      "rides": "Rides"
+      "rides": "Rides",
+      "users": "Users"
     }
   },
   "auth": {
@@ -635,6 +638,46 @@
         "min": "min"
       },
       "riderWithEta": "Rider — {{minutes}} min ({{km}} km)"
+    }
+  },
+  "users": {
+    "loading": "Loading users…",
+    "retry": "Try again",
+    "search": "Search users",
+    "searchPlaceholder": "Search name, phone or email",
+    "filterByRole": "Filter by role",
+    "tabs": {
+      "all": "All"
+    },
+    "roles": {
+      "Admin": "Admin",
+      "Operator": "Operator"
+    },
+    "columns": {
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "role": "Role",
+      "joined": "Joined",
+      "actions": "Actions"
+    },
+    "rowsPerPage": "Rows per page",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {{cur}} of {{total}}",
+    "summary": "Showing {{from}}–{{to}} of {{count}}",
+    "summaryFiltered": "Showing {{from}}–{{to}} of {{count}} (filtered from {{total}})",
+    "rowOpenAria": "Open edit for {{name}}",
+    "editUser": "Edit",
+    "editUserAria": "Edit {{name}}",
+    "exportCsv": "Export CSV",
+    "exportCsvAria": "Export {{count}} rows as CSV",
+    "emptyTitle": "No users match your filters",
+    "emptyHint": "Try clearing search or role tab.",
+    "clearFilters": "Clear filters",
+    "caption": "Users table with sorting and pagination",
+    "errors": {
+      "loadFailed": "Could not load users."
     }
   }
 }

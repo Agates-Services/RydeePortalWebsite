@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   UserPlus,
   Users,
+  UserCog,
   Activity,
   Ban,
   Clock,
@@ -98,6 +99,12 @@ export function AppSidebar() {
         to: "/admin/blocked-riders",
         icon: Ban,
         active: pathname === "/admin/blocked-riders",
+      },
+      {
+        label: t("layout.nav.users"),
+        to: "/admin/users",
+        icon: UserCog,
+        active: pathname.startsWith("/admin/users"),
       },
     ];
 
