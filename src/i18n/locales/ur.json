@@ -24,7 +24,8 @@
       "rideView": "سواری",
       "users": "صارفین",
       "editUser": "صارف میں ترمیم",
-      "myProfile": "میرا پروفائل"
+      "myProfile": "میرا پروفائل",
+      "myRides": "میری رائیڈز"
     },
     "nav": {
       "dashboard": "ڈیش بورڈ",
@@ -33,7 +34,8 @@
       "activeRiders": "لائیو میپ",
       "rides": "سواریاں",
       "users": "صارفین",
-      "myProfile": "میرا پروفائل"
+      "myProfile": "میرا پروفائل",
+      "myRides": "میری رائیڈز"
     }
   },
   "auth": {
@@ -145,30 +147,33 @@
       "invalidResponse": "Invalid response shape"
     },
     "rider": {
-      "mapLoading": "میپ لوڈ ہو رہا ہے…",
-      "welcome": "خوش آمدید {{name}} ",
-      "yourDashboard": "آپ کا ڈیش بورڈ",
-      "subhead": "آپ کے اکاؤنٹ کے لیے سب کچھ۔",
-      "profileHeading": "رائیڈر پروفائل",
-      "profileCaption": "رائیڈر پروفائل خلاصہ",
-      "fields": {
-        "name": "نام",
-        "address": "پتہ",
-        "dob": "تاریخِ پیدائش",
-        "area": "علاقہ",
-        "gps": "GPS لوکیشن",
-        "totalRides": "کل رائیڈز",
-        "missedRides": "مسڈ رائیڈز",
-        "distanceTraveled": "طے شدہ فاصلہ",
-        "onlineState": "آن لائن اسٹیٹ",
-        "ratings": "ریٹنگز",
-        "activationStatus": "ایکٹیویشن اسٹیٹس"
-      },
+      "welcome": "خوش آمدید، {{name}}",
+      "subhead": "آپ کی کمائی، رائیڈز اور حیثیت ایک نظر میں۔",
+      "locationHeading": "آپ کا موجودہ مقام",
       "status": {
         "online": "آن لائن",
         "offline": "آف لائن",
-        "active": "ایکٹو",
+        "active": "فعال",
         "inactive": "غیر فعال"
+      },
+      "stats": {
+        "earningsToday": "آج کی کمائی",
+        "earningsTodayAria": "آج کی کمائی",
+        "ridesTodayHint": "آج {{count}} رائیڈز",
+        "earningsWeek": "اس ہفتے کی کمائی",
+        "earningsWeekHint": "اس ہفتے مکمل ہوئی رائیڈز سے",
+        "earningsWeekAria": "اس ہفتے کی کمائی",
+        "ridesToday": "آج مکمل ہوئی رائیڈز",
+        "ridesLifetimeHint": "کل: {{count}}",
+        "ridesTodayAria": "آج مکمل ہوئی رائیڈز",
+        "rating": "ریٹنگ",
+        "ratingHint": "رائیڈر ریٹنگ",
+        "ratingAria": "ریٹنگ {{rating}} از 5",
+        "onlineStatus": "آن لائن حیثیت",
+        "onlineStatusAria": "اس وقت {{online}}",
+        "acceptanceRate": "قبولیت کی شرح",
+        "acceptanceRateAria": "قبولیت کی شرح {{pct}} فیصد",
+        "missedHint": "مِسڈ: {{count}}"
       }
     },
     "activeRidesSection": {
@@ -557,13 +562,25 @@
       "live": "لائیو سواریاں",
       "upcoming": "آنے والی سواریاں",
       "completed": "مکمل شدہ سواریاں",
-      "canceled": "منسوخ شدہ سواریاں"
+      "canceled": "منسوخ شدہ سواریاں",
+      "mine": {
+        "live": "میری لائیو رائیڈ",
+        "upcoming": "میری آنے والی رائیڈز",
+        "completed": "میری مکمل شدہ رائیڈز",
+        "canceled": "میری منسوخ شدہ رائیڈز"
+      }
     },
     "empty": {
       "live": "ابھی کوئی لائیو سواری نہیں",
       "upcoming": "کوئی آنے والی سواری نہیں",
       "completed": "ابھی تک کوئی مکمل سواری نہیں",
-      "canceled": "کوئی منسوخ شدہ سواری نہیں"
+      "canceled": "کوئی منسوخ شدہ سواری نہیں",
+      "mine": {
+        "live": "ابھی آپ کی کوئی لائیو رائیڈ نہیں",
+        "upcoming": "آپ کی کوئی آنے والی رائیڈ نہیں",
+        "completed": "ابھی تک آپ کی کوئی مکمل رائیڈ نہیں",
+        "canceled": "آپ کی کوئی منسوخ رائیڈ نہیں"
+      }
     },
     "errors": {
       "loadFailed": "سواریاں لوڈ کرنے میں ناکامی"

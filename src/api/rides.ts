@@ -91,12 +91,16 @@ export type RideSortKey =
 
 export type RideSortDir = "asc" | "desc";
 
+export type RidesScope = "mine" | "all";
+
 export interface GetRidesRequest {
   tab: RideTab;
   page?: number;
   pageSize?: number;
   sortBy?: RideSortKey;
   sortDir?: RideSortDir;
+  scope?: RidesScope;
+  phone?: string;
 }
 
 export interface GetRidesResponse {
@@ -113,8 +117,14 @@ export function getRides(body: GetRidesRequest): Promise<GetRidesResponse> {
   return post<GetRidesResponse>(API_GET_RIDES_URL, body);
 }
 
-export function getRide(rideId: string): Promise<GetRideResponse> {
-  return post<GetRideResponse>(API_GET_RIDE_URL, { rideId });
+export interface GetRideRequest {
+  rideId: string;
+  scope?: RidesScope;
+  phone?: string;
+}
+
+export function getRide(body: GetRideRequest): Promise<GetRideResponse> {
+  return post<GetRideResponse>(API_GET_RIDE_URL, body);
 }
 
 export interface RidesAreaCount {

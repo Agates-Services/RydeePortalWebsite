@@ -58,9 +58,11 @@ interface RowProps {
   stalled: boolean;
   arrivedLeaving: string | null;
   compact: boolean;
+  hideRider: boolean;
+  viewPathPrefix: string;
 }
 
-function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
+function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact, hideRider, viewPathPrefix }: RowProps) {
   const { t } = useTranslation();
   const canView = tab === "live" || tab === "completed";
   const elapsed = tab === "live" ? minutesBetween(ride.startedAt, new Date().toISOString()) : null;
@@ -85,7 +87,7 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
   const idCell = compact ? (
     <td className="ps-6 pe-4 py-2 font-mono text-xs">
       <Link
-        to={`/admin/rides/${encodeURIComponent(ride.rideId)}`}
+        to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
         className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
       >
         {ride.rideId}
@@ -105,7 +107,7 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
     >
       {idCell}
       {compact && statusCell}
-      <td className="px-4 py-2"><TwoLine top={ride.rider.name} bottom={ride.rider.phone} /></td>
+      {!hideRider && <td className="px-4 py-2"><TwoLine top={ride.rider.name} bottom={ride.rider.phone} /></td>}
       {!compact && <td className="px-4 py-2"><TwoLine top={ride.customer.name} bottom={ride.customer.phone} /></td>}
       <td className="px-4 py-2 max-w-[180px] truncate" title={ride.pickup.label}>{ride.pickup.label}</td>
       <td className="px-4 py-2 max-w-[180px] truncate" title={ride.dropoff.label}>{ride.dropoff.label}</td>
@@ -138,7 +140,7 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
           {canView ? (
             <Button asChild type="button" variant="outline" size="sm">
               <Link
-                to={`/admin/rides/${encodeURIComponent(ride.rideId)}`}
+                to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
                 aria-label={t("rides.viewRideAria", { id: ride.rideId })}
               >
                 {t("rides.viewRide")}
@@ -153,7 +155,7 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
   );
 }
 
-function MobileCard({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
+function MobileCard({ ride, tab, stalled, arrivedLeaving, compact, hideRider, viewPathPrefix }: RowProps) {
   const { t } = useTranslation();
   const canView = tab === "live" || tab === "completed";
   return (
@@ -168,7 +170,7 @@ function MobileCard({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
       <div className="flex items-center justify-between gap-2">
         {compact ? (
           <Link
-            to={`/admin/rides/${encodeURIComponent(ride.rideId)}`}
+            to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
             className="font-mono text-xs hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           >
             {ride.rideId}
@@ -178,10 +180,12 @@ function MobileCard({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
         )}
         <StatusPill status={ride.status} />
       </div>
-      <div className="text-sm">
-        <span className="text-muted-foreground">{t("rides.columns.rider")}: </span>
-        {ride.rider.name} · <span className="font-mono text-xs">{ride.rider.phone}</span>
-      </div>
+      {!hideRider && (
+        <div className="text-sm">
+          <span className="text-muted-foreground">{t("rides.columns.rider")}: </span>
+          {ride.rider.name} · <span className="font-mono text-xs">{ride.rider.phone}</span>
+        </div>
+      )}
       {!compact && (
         <div className="text-sm">
           <span className="text-muted-foreground">{t("rides.columns.customer")}: </span>
@@ -210,7 +214,7 @@ function MobileCard({ ride, tab, stalled, arrivedLeaving, compact }: RowProps) {
         <div className="pt-1">
           <Button asChild type="button" variant="outline" size="sm">
             <Link
-              to={`/admin/rides/${encodeURIComponent(ride.rideId)}`}
+              to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
               aria-label={t("rides.viewRideAria", { id: ride.rideId })}
             >
               {t("rides.viewRide")}
@@ -267,6 +271,8 @@ export interface RidesTableProps {
   onSort?: (key: RideSortKey) => void;
   compact?: boolean;
   arrivedFirstSeen?: Map<string, number>;
+  hideRiderColumn?: boolean;
+  viewPathPrefix?: string;
 }
 
 export function RidesTable({
@@ -278,6 +284,8 @@ export function RidesTable({
   onSort,
   compact = false,
   arrivedFirstSeen,
+  hideRiderColumn = false,
+  viewPathPrefix = "/admin/rides",
 }: RidesTableProps) {
   const { t } = useTranslation();
   const sortable = sort !== undefined && onSort !== undefined;
@@ -316,7 +324,7 @@ export function RidesTable({
             <tr>
               {renderTh("rideId", "ps-6 pe-4 py-3 min-w-[110px]", t("rides.columns.rideId"))}
               {compact && renderTh("status", "px-4 py-3 min-w-[130px]", t("rides.columns.status"))}
-              {renderTh("riderName", "px-4 py-3 min-w-[150px]", t("rides.columns.rider"))}
+              {!hideRiderColumn && renderTh("riderName", "px-4 py-3 min-w-[150px]", t("rides.columns.rider"))}
               {!compact && renderTh("customerName", "px-4 py-3 min-w-[150px]", t("rides.columns.customer"))}
               {renderTh("pickupLabel", "px-4 py-3 min-w-[140px]", t("rides.columns.pickup"))}
               {renderTh("dropoffLabel", "px-4 py-3 min-w-[140px]", t("rides.columns.dropoff"))}
@@ -333,7 +341,7 @@ export function RidesTable({
             {rides.map((r) => {
               const { stalled, leaving } = decorateRow(r);
               return (
-                <DesktopRow key={r.rideId} ride={r} tab={tab} stalled={stalled} arrivedLeaving={leaving} compact={compact} />
+                <DesktopRow key={r.rideId} ride={r} tab={tab} stalled={stalled} arrivedLeaving={leaving} compact={compact} hideRider={hideRiderColumn} viewPathPrefix={viewPathPrefix} />
               );
             })}
           </tbody>
@@ -344,7 +352,7 @@ export function RidesTable({
         {rides.map((r) => {
           const { stalled, leaving } = decorateRow(r);
           return (
-            <MobileCard key={r.rideId} ride={r} tab={tab} stalled={stalled} arrivedLeaving={leaving} compact={compact} />
+            <MobileCard key={r.rideId} ride={r} tab={tab} stalled={stalled} arrivedLeaving={leaving} compact={compact} hideRider={hideRiderColumn} viewPathPrefix={viewPathPrefix} />
           );
         })}
       </div>

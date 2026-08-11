@@ -10,7 +10,7 @@ import {
   AllRidersRoute,
   RiderEditRoute,
 } from "@/features/riders/routes";
-import { RidesRoute, RideViewRoute } from "@/features/rides/routes";
+import { RidesRoute, RiderRidesRoute, RideViewRoute, RiderRideViewRoute } from "@/features/rides/routes";
 import { UsersRoute } from "@/features/users/routes";
 import ErrorBoundaryPage from "@/features/errors/ErrorBoundaryPage";
 import NotFoundPage from "@/features/errors/NotFoundPage";
@@ -32,13 +32,16 @@ export const router = createBrowserRouter([
       },
 
       {
-        element: <ProtectedRoute allow={["Rider"]} />,
-        children: [{ path: "rider", element: <RiderDashboardRoute /> }],
-      },
-
-      {
         element: <DashboardLayout />,
         children: [
+          {
+            element: <ProtectedRoute allow={["Rider"]} />,
+            children: [
+              { path: "rider", element: <RiderDashboardRoute /> },
+              { path: "rider/rides", element: <RiderRidesRoute /> },
+              { path: "rider/rides/:rideId", element: <RiderRideViewRoute /> },
+            ],
+          },
           {
             element: <ProtectedRoute allow={["Admin"]} />,
             children: [

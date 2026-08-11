@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { useAuth } from "@/features/auth/useAuth";
 import { useTranslation } from "react-i18next";
 import {
   getRides,
@@ -119,8 +120,14 @@ function compare(a: Ride, b: Ride, key: SortKey, dir: SortDir): number {
   return dir === "asc" ? c : -c;
 }
 
-export default function RidesPage() {
+export interface RidesPageProps {
+  scope?: "mine" | "all";
+}
+
+export default function RidesPage({ scope = "all" }: RidesPageProps) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
+  const myPhone = scope === "mine" ? (profile?.phone ?? "") : "";
   const [searchParams, setSearchParams] = useSearchParams();
   const initialParams = useRef(searchParams).current;
 
@@ -189,9 +196,12 @@ export default function RidesPage() {
     const isServerPaged = tab === "completed" || tab === "canceled";
     const fetchOnce = async () => {
       try {
-        const req = isServerPaged
+        const baseReq = isServerPaged
           ? { tab, page, pageSize, sortBy: sort.key, sortDir: sort.dir }
           : { tab };
+        const req = scope === "mine"
+          ? { ...baseReq, scope: "mine" as const, phone: myPhone }
+          : baseReq;
         const data = await getRides(req);
         if (cancelled) return;
         setRides(data.rides);
@@ -222,7 +232,7 @@ export default function RidesPage() {
     return () => {
       cancelled = true;
     };
-  }, [tab, page, pageSize, reloadKey, t, sort.key, sort.dir]);
+  }, [tab, page, pageSize, reloadKey, t, sort.key, sort.dir, scope, myPhone]);
 
   const now = nowTick;
 
@@ -377,7 +387,7 @@ export default function RidesPage() {
 
         {!loading && !error && !unavailable && empty && (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm font-medium text-foreground">{t(`rides.empty.${tab}`)}</p>
+            <p className="text-sm font-medium text-foreground">{scope === "mine" ? t(`rides.empty.mine.${tab}`) : t(`rides.empty.${tab}`)}</p>
           </div>
         )}
 
@@ -388,10 +398,12 @@ export default function RidesPage() {
                 rides={pageRows}
                 tab={tab}
                 now={now}
-                caption={t(`rides.caption.${tab}`)}
+                caption={scope === "mine" ? t(`rides.caption.mine.${tab}`) : t(`rides.caption.${tab}`)}
                 sort={sort}
                 onSort={toggleSort}
                 arrivedFirstSeen={arrivedFirstSeen.current}
+                hideRiderColumn={scope === "mine"}
+                viewPathPrefix={scope === "mine" ? "/rider/rides" : "/admin/rides"}
               />
             </div>
 

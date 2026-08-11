@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Link, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { getRide, type Ride, type RideStatus } from "@/api/rides";
+import { getRide, type Ride, type RideStatus, type RidesScope } from "@/api/rides";
+import { useAuth } from "@/features/auth/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,8 +38,14 @@ function isLive(status: RideStatus): boolean {
   return LIVE_STATUSES.includes(status);
 }
 
-export default function RideViewPage() {
+interface RideViewPageProps {
+  scope?: RidesScope;
+}
+
+export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) {
   const { t } = useTranslation();
+  const { profile } = useAuth();
+  const myPhone = scope === "mine" ? (profile?.phone ?? "") : "";
   const { rideId } = useParams<{ rideId: string }>();
   const [ride, setRide] = useState<Ride | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +61,7 @@ export default function RideViewPage() {
     }
     (async () => {
       try {
-        const data = await getRide(rideId);
+        const data = await getRide({ rideId, scope, phone: myPhone });
         if (cancelled) return;
         setRide(data.ride);
       } catch (err) {
@@ -72,14 +79,14 @@ export default function RideViewPage() {
     return () => {
       cancelled = true;
     };
-  }, [rideId, t]);
+  }, [rideId, t, scope, myPhone]);
 
   const liveMode = ride ? isLive(ride.status) : false;
   useEffect(() => {
     if (!rideId || !liveMode) return;
     pollRef.current = setInterval(async () => {
       try {
-        const data = await getRide(rideId);
+        const data = await getRide({ rideId, scope, phone: myPhone });
         setRide(data.ride);
       } catch {
         // ignore transient poll errors; next tick retries
@@ -88,7 +95,7 @@ export default function RideViewPage() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [rideId, liveMode]);
+  }, [rideId, liveMode, scope, myPhone]);
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -106,7 +113,7 @@ export default function RideViewPage() {
       className="h-8 w-8 shrink-0"
       aria-label={t("rides.viewRidePage.back")}
     >
-      <Link to="/admin/rides">
+      <Link to={scope === "mine" ? "/rider/rides" : "/admin/rides"}>
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
       </Link>
     </Button>
@@ -249,9 +256,12 @@ export default function RideViewPage() {
               </dt>
               <dd className="font-medium text-sm">
                 {ride.customer.name}
-                <span className="ms-2 font-mono text-xs text-muted-foreground">
+                <a
+                  href={`tel:${ride.customer.phone}`}
+                  className="ms-2 font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
+                >
                   {ride.customer.phone}
-                </span>
+                </a>
               </dd>
             </div>
             <div className="flex flex-col">

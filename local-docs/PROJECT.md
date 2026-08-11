@@ -1,6 +1,6 @@
 # PROJECT.md — RydeePortalWebsite
 
-> **Last updated:** 2026-08-07 (Rides feature complete — all gates green, owner accepted; Rider Profile Edit complete — 3 stages + polish; uncommitted working tree pending owner commits) · Snapshot, not a log — rewrite stale sections.
+> **Last updated:** 2026-08-11 (Wave 4 Phase 1 QA SHIP — Rider Role Experience complete, ADR-0008; all Waves 1–4 committed and gate-verified; 161/161 tests, main bundle 214.05 kB gzip, MSW purity 0) · Snapshot, not a log — rewrite stale sections.
 
 ---
 
@@ -10,13 +10,13 @@ RydeePortalWebsite is a single-page React portal for the Rydee ride-hailing plat
 
 ---
 
-## Current State (as of 2026-08-07)
+## Current State (as of 2026-08-11)
 
-All iterations through Iter 8 + Security Review are **on main** (tip `dd4648a`, 2026-08-06). The Rider Profile Edit feature and the Rides feature are **complete in the working tree** (gate-verified, owner accepted) and await the owner's manual commits.
+All iterations through Iter 8 + Security Review are **on main** (tip `dd4648a`, 2026-08-06). The Rider Profile Edit feature and the Rides feature are **complete in the working tree** (gate-verified, owner accepted) and await the owner's manual commits (Waves 1–4 + prior batches).
 
-The portal ships EN/UR i18n with full RTL mirroring for Urdu. npm audit: **0 vulnerabilities**. **114/114 vitest** (Rider Profile Edit baseline); bundle includes recharts `RidesCharts` lazy chunk (~395 kB raw, isolated from main). Pre-Rides Iter 8 main-bundle reference: **250.59 kB** (Vite CLI gzip) / **244.72 kB** (Node zlib default-6). Gates verified throughout Rider Profile Edit + Rides feature: lint 0, typecheck 0, strict 0, build OK, MSW purity 0 hits.
+The portal ships EN/UR i18n with full RTL mirroring for Urdu. npm audit: **0 vulnerabilities**. **161/161 vitest** (Wave 4 Phase 1 final, cold full-suite 2026-08-11); main bundle **214.05 kB gzip** (Vite CLI, MSW=false). Recharts `RidesCharts` lazy chunk (~395 kB raw) isolated from main. Gates: lint 0, typecheck:strict 0, build OK, MSW purity 0 hits.
 
-**Working tree: 4 pending commits (owner to make).**
+**Working tree: all Wave 1–4 + prior batch commits pending owner commit (personal).**
 
 | Commit (pending) | Scope |
 |-----------------|-------|
@@ -54,6 +54,7 @@ The portal ships EN/UR i18n with full RTL mirroring for Urdu. npm audit: **0 vul
 | **Rides feature** | ✅ **COMPLETE 2026-08-07** — `/admin/rides` list (4 tabs, search, sort, pagination, 12s poll, stalled highlight, fare PKR); `/admin/rides/:rideId` full-page map view (details card + Leaflet, traveled-path, live poll); dashboard widgets (`RidesTable`, pie, bar); `ui/map.tsx` + `ui/chart.tsx` primitives; `RidesCharts` lazy chunk; ADR-0006 Accepted; all gates green; owner accepted; pending commit (D); rides endpoints MOCK-ONLY (D41) |
 | **Portal consolidation — Wave 1 (ADR-0007)** | ✅ **COMPLETE 2026-08-11** — root errorElement + friendly error page; `*` route now renders a real 404 (was a silent redirect to `/`); `BlockedRiders` page removed (fully redundant with `AllRiders?status=blocked`; legacy `/admin/blocked-riders` redirects; Dashboard StatCard retargeted); `riders.blocked.*`, `layout.nav.blockedRiders`, `layout.title.blockedRiders` i18n keys pruned; guards untouched (H8 trace re-verified); tests 126/126 (baseline 123 + 3 new − 0 removed). Wave-2 deferrals: PendingRiders removal (blocks on D37 item 3), ActiveRiders simulation strip + Leaflet lazy-load (D43) + rename "Live Map". ADR-0008 reserved for Rider Role Experience. |
 | **Wave 3 — My Profile + 401 handling** | ✅ **COMPLETE 2026-08-11 (uncommitted, owner commits personally)** — new `/account/profile` route inside `DashboardLayout` (`Admin+Operator+Rider`); Tabs (Profile + Settings) built with inline ARIA (no shadcn `tabs` primitive — H10); Profile tab edits `name`/`address` via diff-only `updateUser(phone, role, patch)` with `saveSession(merged) + login(merged)` refresh + discard-confirm AlertDialog; Rider role shows activation-status Badge. Settings tab: `LanguageSwitcher` + Change-password form (min 8, match validation) against a new MOCK-ONLY `POST /change-password` (D48 / ADR-0003 fn 17) — wrong current password returns **400 (not 401)** so global handler cannot force-logout the user. Global 401 handler in `src/api/client.ts` clears session, sets `sessionStorage['rydee.expired']` flag, and hard-redirects to `/login?reason=expired` for every non-login URL (`/user-login` exempt). `LoginPage` renders an amber notice when either signal is present, then clears the flag. `session.ts loadSession()` TTL-expiry path sets the same flag (D49). Sidebar footer dropdown gains "My profile" above Sign out. Gates green: lint 0, typecheck:strict 0, build ok, tests **142/142** (127 baseline + 2 W2-1 activate + 13 new — profile 4, password 4, 401 handler 2, expired notice 3). |\n| **Portal consolidation — Wave 2 (ADR-0007)** | ✅ **COMPLETE 2026-08-11** — B1: `PendingRiders` page removed (562 LOC); `/admin/pending-riders` → `Navigate to /admin/all-riders?status=pending`; `/get-all-inactive-riders` no longer called (URL constant + helper + MSW handler + `inactiveSeeds` deleted); Sidebar + Dashboard StatCard retargeted; `riders.pending.*`, `layout.nav.pendingRiders`, `layout.title.pendingRiders` pruned. B2: `ActiveRiders` client-side position + state randomization stripped; page now renders only real `currentLocation` from `/get-all-riders`; Leaflet map extracted to `LiveMap.tsx` + `React.lazy` + `Suspense`; nav/title renamed "Live Map"; `RiderState` type + state badges removed. Gates green 127/127; main-chunk gzip 216.37 → 210.74 kB (−5.63 kB). D18 supersede-note + D43 closed + D47 opened (live-position backend follow-up). |
+| **Wave 4 Phase 1 — Rider Role Experience (ADR-0008)** | ✅ **COMPLETE 2026-08-11 (uncommitted, owner commits personally)** — Rider routes moved inside `DashboardLayout` (`/rider`, `/rider/rides`, `/rider/rides/:rideId`); `AppSidebar` `isRider` branch shows only Dashboard / My rides / My profile. `RiderDashboard` rewrite: 6 stat cards (earnings today, earnings this week, rides today, rating, online status, acceptance rate) + rider live-location map card. Pure helpers `deriveRiderStats`/`acceptanceRate` in `src/features/dashboards/riderStats.ts`. `StatCard` promoted to `src/components/StatCard.tsx` (`value: ReactNode` widened); `RatingStars` extracted to `src/components/RatingStars.tsx`. `RidesPage` accepts `scope?: 'mine' \| 'all'` prop; `RidesTable` accepts `hideRiderColumn` + `viewPathPrefix`. `/get-rides` handler accepts `body.scope + body.phone` (mock convenience — real backend derives phone from session cookie, D37 item 7). Phase 2 `/get-my-stats` deferred (D50). New i18n keys: `layout.title.myRides`, `layout.nav.myRides`, `layout.nav.myProfile`, full `dashboards.rider.*` refresh, `rides.caption.mine.*`, `rides.empty.mine.*` (en + ur). Gates green: lint 0, typecheck:strict 0, build 214.05 kB main gzip (+3.31 kB vs pre-Wave-4 baseline 210.74 kB), MSW purity 0 hits, tests **161/161** (+19 = 3 W4 cross-role guards + 13 wave4-rider-experience derivation/scoping/sidebar + 3 /get-ride scoping post-QA). QA Wave 4 fixes applied post-CONDITIONAL SHIP (2026-08-11): MAJOR-1 `/get-ride` handler now enforces `scope='mine'` phone match (404 for non-owner) — same-change ADR-0003 `/get-ride` row + ADR-0008 §My Rides amended; MINOR-1 customer phone rendered as `tel:` link in ride view; MINOR-3 vitest testTimeout bumped 5s→10s (D52); MINOR-2 tracked in register (D51). ADR-0008 Accepted (Phase 1 gate met); ADR-0003 fn 14 + /get-ride amended (scope+phone). |
 
 **D8 restyle summary:**
 - shadcn primitives adopted across all pages (auth, dashboards, riders) — Radix `<Checkbox>`, `<AlertDialog>`, `<Button>`, `<Card>`, `<Input>`, `<Label>`, `<Badge>`, `<Select>`, `<Table>` in use
@@ -614,31 +615,82 @@ S-01, S-03, S-05 fixes are all in commit (f) of the pending-commit list.
 | D39 | **[MOCK-ONLY/PROPOSED] `POST /reset-rider-pin`** — PIN reset flow built mock-first. Proposed contract: `{ phone, role }` → `{ pin: string }` (plaintext, returned once, hash-only stored). Frontend: confirm AlertDialog → POST → non-dismissable one-time PIN dialog with Copy button. Production renders 'temporarily unavailable' fallback until backend ships. Requirements to relay: crypto-random generation, hash-only storage, plaintext returned once, rate-limit. | Owner (dandkhan) / Backend | High |
 | D45 | **[QA follow-up] No test assertion covers `VITE_ENABLE_MSW=true` + missing/junk `VITE_API_BASE_URL`** — `env-validator.test.ts` and `check-env-script.test.ts` assert the happy path and the MSW=false strict failures, but no test exercises the MSW=true + absent/malformed base-URL branch. Candidate for a one-test additive assertion before the next demo deploy. | QA / Frontend Dev | Low |
 | D40 | **[CONTRACT ASSUMPTION] `/update-user` accepts `activationStatus`** — Status card in Rider Profile Edit sends `{ phone, role, activationStatus }` to `POST /update-user` for Block/Offboard/Unblock/Reactivate transitions. This is an assumed extension of the existing `/update-user` contract (ADR-0003 synced with assumption flag). The `name`, `cnic`, `dob` fields are also assumed accepted (D37 item 2). Stage 3 live-wiring is blocked until backend confirms or provides a dedicated status endpoint. | Owner (dandkhan) / Backend | High |
+| D46 | **[MOCK-ONLY / CONTRACT PROPOSAL] `POST /get-all-users`** — User Management page (`/admin/users`). Response `{ users: [{ role: "Admin"|"Operator", profile: { id, name, phone, email?, area?, address?, dateOfJoining? } }] }`. **Visibility rule (server-enforced, owner decision):** Admin sessions receive Admin + Operator; Operator sessions receive Operator only. Caller role MUST be derived from session cookie (never body). Mock handler reads `body.role` as development convenience — do NOT port to production. ADR-0003 fn 15. | Owner / Backend | High |
+| D47 | **[Backend / Infra] Rider live-position updates** — Live Map shows static snapshot of `currentLocation` from `/get-all-riders` at page load (Wave 2 B2 stripped client-side randomization 2026-08-11). Backend must ship real-time rider position delivery: (a) WebSocket/SSE push `{riderId, lat, lon, updatedAt}`; (b) dedicated `POST /get-active-rider-positions` poll; or (c) piggyback on `/get-all-riders` poll. Owner to relay. | Backend / Infra | Medium |
+| D48 | **[MOCK-ONLY / CONTRACT PROPOSAL] `POST /change-password`** — Settings tab of My Profile. Request: `{ phone, currentPassword, newPassword }` (backend derives `phone` from session cookie — never trust body). Response: `200 { success: true }`; `400 { success: false, error }` on wrong-current-password or validation failure (**NOT 401** — deliberate, 401 trips global handler); `404` unknown user. Backend: hash-compare current, hash-store new, rate-limit. ADR-0003 fn 17. | Owner / Backend | High |
+| D49 | **[UX] Session-expired notice on LoginPage** — amber notice fires when global 401 handler force-logouts mid-session (`sessionStorage["rydee.expired"]="1"` + `?reason=expired`) OR when client-side session TTL expires at `loadSession()`. LoginPage reads whichever fires first, clears flag, shows notice. `/user-login` exempt from global 401 handler. Mocked exclusively; real backend must return 401 for expired/missing session cookie on all authenticated endpoints. | Frontend Dev | Low |
+| D50 | **[MOCK-ONLY / Phase 2 backend need] `POST /get-my-stats`** — Wave 4 Phase 1 derives earnings/stats client-side from `/get-rides scope="mine"`. Phase 2 replaces with dedicated endpoint: `{ earningsToday, earningsWeek, ridesToday, ridesWeek, acceptanceRate, avgRating }`. Backend derives rider phone from session cookie. Phase 1 derivation kept as fallback. ADR-0008 Phase 2. **Next candidate for Wave 4 Phase 2.** | Owner / Backend | Medium |
+| D51 | **[Wave 4 Phase 1 deferred] Wire-level rider identity omission in `/get-rides scope="mine"`** — mock returns full `rider.{name,phone}` on scoped rides even though `RidesTable` renders with `hideRiderColumn`. QA MINOR-2: backend contract clean-up — when scope=mine, omit `rider` block or replace with `{ self: true }`. Cosmetic (caller owns own data), but tightens wire per ADR-0008 §My Rides bullet 2. Frontend follows on contract amendment. ADR-0003 fn 14. | Backend / Frontend Dev | Low |
+| D52 | **[Test infra] Vitest testTimeout bumped 5 s → 10 s** — `vite.config.ts` `testTimeout: 10000`. QA MINOR-3: cold-run flakes in `iter4-additive` and `riders-activate` at 5 s under Windows CI absorbed by bump. Revisit if any single test approaches 10 s wall time; no individual test currently near budget. Tooling note only. | QA / DX | Low |
 
 ---
 
 ## In Flight
 
-| Feature | Plan doc | Stage | Owner |
-|---------|----------|-------|-------|
-| Rider Profile Edit | `local-docs/ux/rider-profile-edit-plan.md` (rev 10, COMPLETE) | **All 3 stages + polish batch DONE** — uncommitted working tree, pending commits A/B/C; Stage 3 live-wiring pending backend D38/D39/D40 | Frontend Dev |
-| Rides | `local-docs/ux/active-rides-plan.md` (rev 3, COMPLETE) | ✅ **COMPLETE 2026-08-07** — all gates green, owner accepted; pending commit D; rides endpoints MOCK-ONLY (D41) | Frontend Dev |
+All Waves 1–4 are **COMPLETE** (gate-verified, owner commits pending). No active frontend feature work in flight. Next candidate: Wave 4 Phase 2 (`POST /get-my-stats` — D50, gated on backend).
+
+| Feature | Status | Owner |
+|---------|--------|-------|
+| Rider Profile Edit (3 stages + polish) | ✅ COMPLETE — uncommitted, pending commits A/B/C; Stage 3 live-wiring blocked on D38/D39/D40 | Frontend Dev |
+| Rides | ✅ COMPLETE 2026-08-07 — pending commit D; rides endpoints MOCK-ONLY (D41) | Frontend Dev |
+| Wave 1 — Portal consolidation (ADR-0007) | ✅ COMPLETE 2026-08-11 — pending owner commit | Frontend Dev |
+| Wave 2 — AllRiders + LiveMap (ADR-0007) | ✅ COMPLETE 2026-08-11 — pending owner commit | Frontend Dev |
+| Wave 3 — My Profile + 401 handling | ✅ COMPLETE 2026-08-11 — pending owner commit | Frontend Dev |
+| Wave 4 Phase 1 — Rider Role Experience (ADR-0008) | ✅ COMPLETE 2026-08-11 — QA SHIP — pending owner commit | Frontend Dev |
 
 **Next steps (owner):**
 1. Smoke-test the working tree against the backend.
-2. Make the 4 pending commits (messages A, B, C, D in Current State table above).
+2. Commit all pending changes (Waves 1–4 + prior batches A/B/C/D/E) to `qa` branch.
 3. Relay the Backend Handover List (below) to backend dev.
 
-**Backend Handover List (owner to relay):**
-1. `/update-user` must accept `name`, `cnic`, `dob`, `activationStatus` (D40 CONTRACT ASSUMPTION — Stage 3 live-wiring blocked on this).
-2. Three document endpoints: `POST /get-rider-documents`, `POST /upload-rider-document`, `DELETE /delete-rider-document` — upsert semantics, 7-type enum, optional `name` for `other`, 2 MB + MIME limits mirrored from frontend (D38 MOCK-ONLY — see deferred register).
-3. `POST /reset-rider-pin` — crypto-random, hash-only storage, plaintext returned once, rate-limit (D39 MOCK-ONLY).
-4. `POST /get-all-inactive-riders` empty response should return `{riders:[]}` not `{success:false,error:'No rider found'}`.
-5. ~~`BlockedRiders` page unblock is still local-state-only~~ **CLOSED 2026-08-11 (ADR-0007 Wave 1)** — `BlockedRiders` page removed; unblock now lives solely on `RiderEditPage` (Status card → `/update-user activationStatus=active`, subject to D40).
-6. Someday: single-rider fetch endpoint (so edit page fallback fetch avoids fetching the full list).
-7. **Rides endpoints (MOCK-ONLY — D41):** `POST /get-rides` (with `sortBy`/`sortDir`, `tab`, `page`, `pageSize`), `POST /get-ride`, `POST /get-rides-summary` (`liveTotal`/`upcomingTotal`/`areas`/`monthly`) — backend has zero ride support; production shows 'unavailable' state.
-8. **Rides contract additive fields (D42):** `routePolyline`, `traveledPath` (`[[lat,lng],…]`), `plannedDistanceKm`, `traveledDistanceKm`, `waitingMinutes`, `eta` — backend must supply or self-host OSRM (ADR-0006 open item).
-9. **`POST /change-password` (MOCK-ONLY — D48, Wave 3 2026-08-11):** request `{ phone, currentPassword, newPassword }`; response `{ success: true }` on happy path, `400 { success:false, error }` on validation / wrong-current-password (deliberate — never 401), `404` for unknown user. Real backend MUST derive `phone` from the session cookie, hash-compare current, hash-store new; rate-limit recommended. ADR-0003 fn 17 synced. `/change-password` also added to `PROXY_PREFIXES` in `vite.config.ts`.\n10. **User Management endpoint (MOCK-ONLY / CONTRACT PROPOSAL — D46, 2026-08-10):** `POST /get-all-users` — response `{users:[{role, profile:{id,name,phone,email?,area?,address?,dateOfJoining?}}]}`. **Server-enforced visibility rule (owner decision):** Admin sessions receive Admin + Operator users; Operator sessions receive Operator only. Caller role MUST be derived from the session cookie server-side, NEVER from the request body. `/update-user` authz for Admin targets from Operator sessions is likewise backend responsibility. Same visibility contract applies (Operators cannot patch Admin users). ADR-0003 fn 15 synced same-change.
+## Backend Handover List
+
+> **Owner (dandkhan) to relay to backend dev.** This is the consolidated list of all mock-only endpoints and behaviors the real backend must implement. A critical cross-cutting rule applies to every item: **the backend MUST derive the caller's identity (phone and/or role) from the session cookie — NEVER from the request body.** Mock handlers use `body.phone` / `body.role` as a development convenience only (flagged inline in each handler). See ADR-0003 for the full per-endpoint contract.
+
+### Session-Derivation Rule (M2 — from Wave 3)
+
+All authenticated endpoints must derive caller identity server-side. The mock's `body.phone` / `body.role` patterns are **mock conveniences only** — porting them to production would allow any client to impersonate any user. Specific enforcement points:
+
+| Endpoint | Mock convenience | Production requirement |
+|----------|-----------------|------------------------|
+| `POST /get-all-users` | `body.role` scopes visibility | Derive caller role from session cookie; Admin → All, Operator → Operator only (ADR-0003 fn 15, D46) |
+| `POST /get-rides` (scope=mine) | `body.phone` filters to caller | Derive caller phone from session cookie; ignore `body.phone` (ADR-0003 fn 14, D37 item 7) |
+| `POST /get-ride` (scope=mine) | `body.phone` ownership check | Derive caller phone from session cookie; 404 non-owned rides (ADR-0003 `/get-ride` row, D37 item 7, QA MAJOR-1 fix 2026-08-11) |
+| `POST /change-password` | `body.phone` identifies user | Derive caller phone from session cookie; hash-compare + hash-store (ADR-0003 fn 17, D48) |
+| `POST /get-my-stats` (Phase 2) | Client-side derivation fallback | Derive caller phone from session cookie; return aggregated stats (ADR-0008 Phase 2, D50) |
+
+### Endpoint Handover Items
+
+1. **`/update-user` field confirmation (D40)** — must accept `activationStatus ∈ "active"|"blocked"|"offboarded"` as a patch field, plus `name`, `cnic`, `dob`. CONTRACT ASSUMPTION; Stage 3 live-wiring blocked on this. ADR-0003 `/update-user` row.
+
+2. **Rider document endpoints — MOCK-ONLY (D38)** — `POST /get-rider-documents`, `POST /upload-rider-document`, `DELETE /delete-rider-document`. Upsert semantics; 7-type enum (`cnic_front`, `cnic_back`, `bike_registration`, `driving_license`, `utility_bill`, `profile_photo`, `other`); optional `name` for `other`; 2 MB size limit; PDF/JPG/PNG allowlist (images-only for `profile_photo`). ADR-0003 fn 12.
+
+3. **`POST /reset-rider-pin` — MOCK-ONLY (D39)** — proposed contract: `{ phone, role }` → `{ pin: string }`. Backend: crypto-random generation, hash-only storage, plaintext returned once, rate-limit. ADR-0003 fn 13.
+
+4. **`POST /get-all-inactive-riders` empty response** — when no pending riders exist return `{ riders: [] }` not `{ success: false, error: "No rider found" }` (ADR-0003 fn 11). Note: portal no longer calls this endpoint (Wave 2, 2026-08-11) — backend may keep or drop.
+
+5. ~~BlockedRiders unblock~~ **CLOSED 2026-08-11** — unblock lives on `RiderEditPage` via `/update-user activationStatus=active` (subject to item 1 above).
+
+6. **Single-rider fetch** — someday: fetch one rider by phone without pulling the full list (edit-page fallback). No contract proposed yet.
+
+7. **Rides endpoints — MOCK-ONLY (D41, ADR-0003 fn 14, ADR-0006):**
+   - `POST /get-rides` — `{ tab, page?, pageSize?, sortBy?, sortDir?, scope?: "mine"|"all" }` → `{ rides: Ride[], total, counts }`. Scope-limited callers: derive phone from session cookie, never trust body.
+   - `POST /get-ride` — `{ rideId, scope?: "mine"|"all" }` → `{ ride: Ride }`. When scope=mine backend MUST 404 rides the caller does not own (QA MAJOR-1).
+   - `POST /get-rides-summary` — `{}` → `{ completedTotal, canceledTotal, liveTotal, upcomingTotal, areas, monthly }`.
+
+8. **Rides contract additive fields (D42, ADR-0006):** `routePolyline`, `traveledPath` (`[[lat,lng],…]` JSON arrays), `plannedDistanceKm`, `traveledDistanceKm`, `waitingMinutes`, `eta` — backend must supply or integrate OSRM.
+
+9. **`POST /change-password` — MOCK-ONLY (D48, ADR-0003 fn 17, Wave 3 2026-08-11):** `{ phone, currentPassword, newPassword }` (backend derives `phone` from session cookie). Respond `200 { success: true }`; `400 { success: false, error }` on wrong-current-password or validation failure (**NOT 401** — 401 would trip global handler and force-logout); `404` for unknown user. Hash-compare current, hash-store new; rate-limit.
+
+10. **`POST /get-all-users` — MOCK-ONLY / CONTRACT PROPOSAL (D46, ADR-0003 fn 15, 2026-08-10):** `{}` → `{ users: [{ role: "Admin"|"Operator", profile: { id, name, phone, email?, area?, address?, dateOfJoining? } }] }`. **Visibility rule (server-enforced):** Admin sessions → Admin + Operator; Operator sessions → Operator only. Derive caller role from session cookie (never body). `/update-user` authz for Admin targets from Operator sessions is backend responsibility.
+
+11. **Rider-scoped stats — Phase 2 (D50, ADR-0008 Phase 2):** `POST /get-my-stats` → `{ earningsToday, earningsWeek, ridesToday, ridesWeek, acceptanceRate, avgRating }`. Derive caller phone from session cookie. Phase 1 derives stats client-side as fallback; Phase 2 replaces with this endpoint.
+
+12. **Wire-level rider identity omission (D51, MINOR-2 deferred):** When `scope="mine"` on `/get-rides`, omit or blank the `rider` block on each ride element (caller already owns the data; omitting tightens the wire per ADR-0008 §My Rides bullet 2). Frontend follows when contract is amended.
+
+13. **`POST /logout` — backend dependency (D31, Security Review S-02):** `AuthProvider.logout()` currently clears client state only. When available: fire-and-forget `POST /logout` before `clearSession()` for server-side session invalidation.
+
+14. **Rider live-position updates (D47, Wave 2 2026-08-11):** The Live Map currently shows a static snapshot of `currentLocation` from `/get-all-riders`. Backend options: (a) WebSocket/SSE push for `{riderId, lat, lon, updatedAt}`; (b) dedicated `POST /get-active-rider-positions` poll; (c) piggyback on `/get-all-riders` poll interval.
 
 ---
 
@@ -647,7 +699,7 @@ S-01, S-03, S-05 fixes are all in commit (f) of the pending-commit list.
 | Convention | Detail |
 |-----------|--------|
 | Commit style | `chore/refactor/feat/fix/docs(scope): description`; every commit ends with all gates green |
-| Quality gates | `npm run lint` (0 errors) · `npm run typecheck` (0 errors) · `npm run typecheck:strict` (0 errors) · `npm run build` · `rg -l msw dist/assets/` (0 hits) · `npm test` (**114** regression tests re-verified on `dd4648a` 2026-08-06; `bundle-size.test.ts` deleted by owner — D30 CLOSED; `ai-session-instructions.md` cites 115/119 — owner-managed file, stale) — all required before merging. Bundle is measured manually per task: report Vite CLI gzip AND `zlib.gzipSync` of main chunk, labelled — never compare across the two. Current reference: **250.59 kB** (Vite CLI gzip) / **244.72 kB** (Node zlib default-6) — updated 2026-08-06 (Iteration 8, Vite 8/rolldown build). `test:e2e` (Playwright Chromium smoke, opt-in) — run before release whenever `src/components/ui/{button,popover,calendar,alert-dialog}`, `DatePickerField`/`DatePickerPopover`, or any lazy Radix surface changes; NOT part of the default 5 gates (QA rec F-4.2-04: revisit joining CI once ≥ 3 specs, < 60s) |
+| Quality gates | `npm run lint` (0 errors) · `npm run typecheck` (0 errors) · `npm run typecheck:strict` (0 errors) · `npm run build` · `rg -l msw dist/assets/` (0 hits) · `npm test` (**161** tests — Wave 4 Phase 1 final, 2026-08-11; `bundle-size.test.ts` deleted by owner — D30 CLOSED) — all required before merging. Bundle is measured manually per task: report Vite CLI gzip AND `zlib.gzipSync` of main chunk, labelled — never compare across the two. Current reference: **214.05 kB** (Vite CLI gzip, MSW=false) — updated 2026-08-11 (Wave 4 Phase 1, `qa` branch). `test:e2e` (Playwright Chromium smoke, opt-in) — run before release whenever `src/components/ui/{button,popover,calendar,alert-dialog}`, `DatePickerField`/`DatePickerPopover`, or any lazy Radix surface changes; NOT part of the default 5 gates (QA rec F-4.2-04: revisit joining CI once ≥ 3 specs, < 60s) |
 | CI | GitHub Actions (`.github/workflows/ci.yml`) — Node 20, `npm ci` cache, push/PR |
 | ADRs | `docs/adr/NNNN-slug.md` — Proposed → Accepted/Rejected/Superseded; update in same commit as any shape change |
 | AGENTS.md hard rules | **H1–H8 bind all contributors and AI coding tools.** H1 API contract frozen, H2 never widen ROLES, H3 never delete Customer seed, H4 don't edit `components/ui/`, H5 never commit `.env`, H6 handlers import URLs from `lib/config.ts`, H7 auth storage only via `session.ts`, H8 guard changes require tracing PublicOnly + ProtectedRoute |
@@ -669,7 +721,7 @@ S-01, S-03, S-05 fixes are all in commit (f) of the pending-commit list.
 | ADR-0003: Mock API (MSW) | `docs/adr/0003-mock-api-msw.md` |
 | ADR-0004: All Riders Admin Data Table | `docs/adr/0004-riders-data-table.md` |
 | ADR-0005: Internationalisation (EN/UR) | `docs/adr/0005-i18n.md` |
-| Migration Plan (C0–C7 + deferred register D1–D36) | `local-docs/design/migration-plan.md` |
+| Migration Plan (C0–C7 + deferred register D1–D52) | `local-docs/design/migration-plan.md` |
 | Security Review (2026-08-06) | `local-docs/qa/security-review.md` |
 | i18n Implementation Plan (Steps 1–8) | `docs/design/i18n-plan.md` |
 | i18n String Reconciliation (en.json ↔ ur.json draft) | `docs/design/i18n-strings.md` |
@@ -685,4 +737,7 @@ S-01, S-03, S-05 fixes are all in commit (f) of the pending-commit list.
 | RTL Implementation Plan (Iteration 7) | `local-docs/design/rtl-plan.md` |
 | Rider Profile Edit Plan (rev 10, COMPLETE — pending commits) | `local-docs/ux/rider-profile-edit-plan.md` |
 | ADR-0006: Rides + Live Map | `local-docs/adr/0006-rides-and-live-map.md` |
+| ADR-0007: Portal Consolidation (Waves 1–2) | `local-docs/adr/0007-portal-consolidation.md` |
+| ADR-0008: Rider Role Experience (Wave 4) | `local-docs/adr/0008-rider-role-experience.md` |
 | Rides / Active-Rides UX Plan (rev 3, COMPLETE) | `local-docs/ux/active-rides-plan.md` |
+| QA Wave 4 Phase 1 Review (Rider Role Experience) | `local-docs/qa/wave4-review.md` |

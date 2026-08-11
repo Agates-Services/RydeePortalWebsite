@@ -88,6 +88,20 @@ describe("guards (logged in) — role isolation", () => {
     expect(screen.queryByTestId("admin-page")).toBeNull();
   });
 
+  it("W4: Admin cannot reach /rider (bounced to /admin)", async () => {
+    seedSession({ role: "Admin" });
+    renderAt("/rider");
+    expect(await screen.findByTestId("admin-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("rider-page")).toBeNull();
+  });
+
+  it("W4: Operator cannot reach /rider (bounced to /operator)", async () => {
+    seedSession({ role: "Operator" });
+    renderAt("/rider");
+    expect(await screen.findByTestId("operator-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("rider-page")).toBeNull();
+  });
+
   it("F3 amendment: Admin AND Operator can reach /admin/active-riders", async () => {
     seedSession({ role: "Admin" });
     renderAt("/admin/active-riders");

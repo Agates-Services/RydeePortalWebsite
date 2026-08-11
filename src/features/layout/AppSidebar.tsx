@@ -51,50 +51,74 @@ export function AppSidebar() {
   const { isMobile } = useSidebar();
   const home = roleHome(profile?.role);
   const isAdmin = home === "/admin";
+  const isRider = home === "/rider";
+
+  const riderItems = [
+    {
+      label: t("layout.nav.dashboard"),
+      to: "/rider",
+      icon: LayoutDashboard,
+      active: pathname === "/rider",
+    },
+    {
+      label: t("layout.nav.myRides"),
+      to: "/rider/rides",
+      icon: Car,
+      active: pathname.startsWith("/rider/rides"),
+    },
+    {
+      label: t("layout.nav.myProfile"),
+      to: "/account/profile",
+      icon: User,
+      active: pathname === "/account/profile",
+    },
+  ];
+
+  const staffItems = [
+    {
+      label: t("layout.nav.dashboard"),
+      to: home,
+      icon: LayoutDashboard,
+      active: pathname === home,
+    },
+    ...(isAdmin
+      ? [
+          {
+            label: t("layout.nav.userManagement"),
+            to: "/admin/register",
+            icon: UserPlus,
+            active: pathname === "/admin/register",
+          },
+        ]
+      : []),
+    {
+      label: t("layout.nav.totalRiders"),
+      to: "/admin/all-riders",
+      icon: Users,
+      active: pathname === "/admin/all-riders",
+    },
+    {
+      label: t("layout.nav.activeRiders"),
+      to: "/admin/active-riders",
+      icon: Activity,
+      active: pathname === "/admin/active-riders",
+    },
+    {
+      label: t("layout.nav.rides"),
+      to: "/admin/rides",
+      icon: Car,
+      active: pathname.startsWith("/admin/rides"),
+    },
+    {
+      label: t("layout.nav.users"),
+      to: "/admin/users",
+      icon: UserCog,
+      active: pathname.startsWith("/admin/users"),
+    },
+  ];
 
   const items: Array<{ label: string; to: string; icon: typeof LayoutDashboard; active: boolean }> =
-    [
-      {
-        label: t("layout.nav.dashboard"),
-        to: home,
-        icon: LayoutDashboard,
-        active: pathname === home,
-      },
-      ...(isAdmin
-        ? [
-            {
-              label: t("layout.nav.userManagement"),
-              to: "/admin/register",
-              icon: UserPlus,
-              active: pathname === "/admin/register",
-            },
-          ]
-        : []),
-      {
-        label: t("layout.nav.totalRiders"),
-        to: "/admin/all-riders",
-        icon: Users,
-        active: pathname === "/admin/all-riders",
-      },
-      {
-        label: t("layout.nav.activeRiders"),
-        to: "/admin/active-riders",
-        icon: Activity,
-        active: pathname === "/admin/active-riders",
-      },
-      {
-        label: t("layout.nav.rides"),
-        to: "/admin/rides",
-        icon: Car,
-        active: pathname.startsWith("/admin/rides"),
-      },
-      {
-        label: t("layout.nav.users"),
-        to: "/admin/users",
-        icon: UserCog,
-        active: pathname.startsWith("/admin/users"),
-      },
-    ];
+    isRider ? riderItems : staffItems;
 
   const name = profile?.name ?? "";
   const initials = initialsOf(name);

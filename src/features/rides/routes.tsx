@@ -5,6 +5,14 @@ export function RidesRoute() {
   return <RidesPage />;
 }
 
+export function RiderRidesRoute() {
+  return <RidesPage scope="mine" />;
+}
+
 export function RideViewRoute() {
   return <RideViewPage />;
+}
+
+export function RiderRideViewRoute() {
+  return <RideViewPage scope="mine" />;
 }

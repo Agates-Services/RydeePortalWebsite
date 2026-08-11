@@ -122,7 +122,7 @@ const LIVE_SEEDS: LiveSeed[] = [
     seed: 3,
     rideId: rid(3),
     status: "in_transit",
-    rider: { name: "Bilal Hussain", phone: "0300-2222222" },
+    rider: { name: "Rida Rider", phone: "0300111111" },
     customer: { name: "Sara Ahmed", phone: "0345-9998887" },
     pickup: { label: "Nazimabad No. 3", lat: 24.9105, lng: 67.0345 },
     dropoff: { label: "II Chundrigar Road", lat: 24.8517, lng: 67.0116 },
@@ -375,10 +375,43 @@ const CANCELED_RIDES: Ride[] = [
   },
 ];
 
+const SELF_RIDER: Ride["rider"] = { name: "Rida Rider", phone: "0300111111" };
+
+function todayIso(minutesAgo: number): string {
+  return new Date(Date.now() - minutesAgo * 60_000).toISOString();
+}
+
+const MY_COMPLETED_RIDES: Ride[] = Array.from({ length: 4 }, (_, i): Ride => {
+  const dur = 12 + i * 4;
+  const pLat = 24.87 + i * 0.005;
+  const pLng = 67.05 + i * 0.004;
+  const dLat = 24.86 - i * 0.003;
+  const dLng = 67.001 + i * 0.006;
+  const path = makePolyline(pLat, pLng, dLat, dLng, 90 + i);
+  const traveledKm = pathLenKm(path);
+  return {
+    rideId: rid(90 + i),
+    status: "completed",
+    rider: SELF_RIDER,
+    customer: { name: `My Passenger ${i + 1}`, phone: `0345-30000${i}0` },
+    pickup: { label: "Clifton Block 5", lat: pLat, lng: pLng },
+    dropoff: { label: "Saddar", lat: dLat, lng: dLng },
+    startedAt: todayIso(60 + i * 90 + dur),
+    completedAt: todayIso(60 + i * 90),
+    fare: pkr(350 + i * 40),
+    traveledPath: JSON.stringify(path),
+    routePolyline: JSON.stringify(path),
+    plannedDistanceKm: traveledKm,
+    traveledDistanceKm: traveledKm,
+    waitingMinutes: i,
+  };
+});
+
 const RIDES: Ride[] = [
   ...LIVE_SEEDS.map(buildLive),
   ...UPCOMING_SEEDS.map(buildUpcoming),
   ...COMPLETED_RIDES,
+  ...MY_COMPLETED_RIDES,
   ...CANCELED_RIDES,
 ];
 
@@ -402,12 +435,12 @@ function ridesForTab(tab: RideTab): Ride[] {
   return RIDES.filter((r) => r.status === "canceled");
 }
 
-function computeCounts(): RidesCounts {
+function computeCounts(pool: Ride[] = RIDES): RidesCounts {
   return {
-    live: RIDES.filter((r) => LIVE_STATUSES.includes(r.status)).length,
-    upcoming: RIDES.filter((r) => r.status === "scheduled").length,
-    completed: RIDES.filter((r) => r.status === "completed").length,
-    canceled: RIDES.filter((r) => r.status === "canceled").length,
+    live: pool.filter((r) => LIVE_STATUSES.includes(r.status)).length,
+    upcoming: pool.filter((r) => r.status === "scheduled").length,
+    completed: pool.filter((r) => r.status === "completed").length,
+    canceled: pool.filter((r) => r.status === "canceled").length,
   };
 }
 
@@ -417,6 +450,12 @@ interface GetRidesBody {
   pageSize?: unknown;
   sortBy?: unknown;
   sortDir?: unknown;
+  scope?: unknown;
+  phone?: unknown;
+}
+
+function digits(s: string): string {
+  return s.replace(/[^0-9]/g, "");
 }
 
 function isTab(v: unknown): v is RideTab {
@@ -542,11 +581,19 @@ function computeSummary(): {
 
 export const ridesHandlers = [
   http.post(API_GET_RIDES_URL, async ({ request }) => {
+    // Mock-only convenience: real backend MUST derive the caller phone from the
+    // session cookie when scope="mine", never trust body.phone. See ADR-0003 fn 14
+    // (scope amendment) and fn 15 pattern (/get-all-users body.role).
     const body = (await request.json().catch(() => ({}))) as GetRidesBody;
     const tab = isTab(body.tab) ? body.tab : "live";
     const sortKey: RideSortKey = isSortKey(body.sortBy) ? body.sortBy : "rideId";
     const sortDir: RideSortDir = isSortDir(body.sortDir) ? body.sortDir : "asc";
-    const all = sortRides(ridesForTab(tab).map(jitterLocation), sortKey, sortDir);
+    let scoped = ridesForTab(tab);
+    if (body.scope === "mine") {
+      const caller = typeof body.phone === "string" ? digits(body.phone) : "";
+      scoped = caller ? scoped.filter((r) => digits(r.rider.phone) === caller) : [];
+    }
+    const all = sortRides(scoped.map(jitterLocation), sortKey, sortDir);
     const total = all.length;
     let slice = all;
     if (tab === "completed" || tab === "canceled") {
@@ -556,10 +603,21 @@ export const ridesHandlers = [
       const start = (page - 1) * pageSize;
       slice = all.slice(start, start + pageSize);
     }
-    return HttpResponse.json({ rides: slice, total, counts: computeCounts() });
+    const pool = body.scope === "mine"
+      ? (typeof body.phone === "string"
+          ? RIDES.filter((r) => digits(r.rider.phone) === digits(body.phone as string))
+          : [])
+      : RIDES;
+    return HttpResponse.json({ rides: slice, total, counts: computeCounts(pool) });
   }),
   http.post(API_GET_RIDE_URL, async ({ request }) => {
-    const body = (await request.json().catch(() => ({}))) as { rideId?: unknown };
+    // Mock-only convenience: real backend MUST derive the caller phone from the
+    // session cookie when scope="mine" and 404 rides the caller does not own.
+    const body = (await request.json().catch(() => ({}))) as {
+      rideId?: unknown;
+      scope?: unknown;
+      phone?: unknown;
+    };
     const rideId = typeof body.rideId === "string" ? body.rideId : "";
     const ride = RIDES.find((r) => r.rideId === rideId);
     if (!ride) {
@@ -567,6 +625,15 @@ export const ridesHandlers = [
         { success: false, error: "Ride not found" },
         { status: 404 },
       );
+    }
+    if (body.scope === "mine") {
+      const caller = typeof body.phone === "string" ? digits(body.phone) : "";
+      if (!caller || digits(ride.rider.phone) !== caller) {
+        return HttpResponse.json(
+          { success: false, error: "Ride not found" },
+          { status: 404 },
+        );
+      }
     }
     return HttpResponse.json({ ride: jitterLocation(ride) });
   }),

@@ -12,6 +12,8 @@ const TITLE_KEYS: Record<string, string> = {
   "/admin/active-riders": "layout.title.activeRiders",
   "/admin/rides": "layout.title.rides",
   "/operator": "layout.title.dashboard",
+  "/rider": "layout.title.dashboard",
+  "/rider/rides": "layout.title.myRides",
   "/account/profile": "layout.title.myProfile",
 };
 
@@ -20,7 +22,7 @@ function titleKeyFor(pathname: string): string | null {
   if (pathname.startsWith("/admin/riders/") && pathname.endsWith("/edit")) {
     return "layout.title.editRider";
   }
-  if (pathname.startsWith("/admin/rides/")) {
+  if (pathname.startsWith("/admin/rides/") || pathname.startsWith("/rider/rides/")) {
     return "layout.title.rideView";
   }
   return null;

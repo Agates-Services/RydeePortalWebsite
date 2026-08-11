@@ -24,7 +24,8 @@
       "rideView": "Ride",
       "users": "Users",
       "editUser": "Edit user",
-      "myProfile": "My profile"
+      "myProfile": "My profile",
+      "myRides": "My rides"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -33,7 +34,8 @@
       "activeRiders": "Live map",
       "rides": "Rides",
       "users": "Users",
-      "myProfile": "My profile"
+      "myProfile": "My profile",
+      "myRides": "My rides"
     }
   },
   "auth": {
@@ -145,30 +147,33 @@
       "invalidResponse": "Invalid response shape"
     },
     "rider": {
-      "mapLoading": "Loading map…",
-      "welcome": "Welcome back {{name}} ",
-      "yourDashboard": "Your Dashboard",
-      "subhead": "Everything you need for your account.",
-      "profileHeading": "Rider Profile",
-      "profileCaption": "Rider profile summary",
-      "fields": {
-        "name": "Name",
-        "address": "Address",
-        "dob": "Date of Birth",
-        "area": "Area",
-        "gps": "GPS Location",
-        "totalRides": "Total Rides",
-        "missedRides": "Missed Rides",
-        "distanceTraveled": "Distance Traveled",
-        "onlineState": "Online State",
-        "ratings": "Ratings",
-        "activationStatus": "Activation Status"
-      },
+      "welcome": "Welcome back, {{name}}",
+      "subhead": "Your earnings, rides, and status at a glance.",
+      "locationHeading": "Your current location",
       "status": {
         "online": "Online",
         "offline": "Offline",
         "active": "Active",
         "inactive": "Inactive"
+      },
+      "stats": {
+        "earningsToday": "Today’s earnings",
+        "earningsTodayAria": "Today’s earnings",
+        "ridesTodayHint": "{{count}} rides today",
+        "earningsWeek": "This week’s earnings",
+        "earningsWeekHint": "From completed rides this week",
+        "earningsWeekAria": "This week’s earnings",
+        "ridesToday": "Rides completed today",
+        "ridesLifetimeHint": "Lifetime: {{count}}",
+        "ridesTodayAria": "Rides completed today",
+        "rating": "Rating",
+        "ratingHint": "Rider rating",
+        "ratingAria": "Rating {{rating}} out of 5",
+        "onlineStatus": "Online status",
+        "onlineStatusAria": "Currently {{online}}",
+        "acceptanceRate": "Acceptance rate",
+        "acceptanceRateAria": "Acceptance rate {{pct}} percent",
+        "missedHint": "Missed: {{count}}"
       }
     },
     "activeRidesSection": {
@@ -557,13 +562,25 @@
       "live": "Live rides",
       "upcoming": "Upcoming rides",
       "completed": "Completed rides",
-      "canceled": "Canceled rides"
+      "canceled": "Canceled rides",
+      "mine": {
+        "live": "My live ride",
+        "upcoming": "My upcoming rides",
+        "completed": "My completed rides",
+        "canceled": "My canceled rides"
+      }
     },
     "empty": {
       "live": "No live rides right now",
       "upcoming": "No upcoming rides",
       "completed": "No completed rides yet",
-      "canceled": "No canceled rides"
+      "canceled": "No canceled rides",
+      "mine": {
+        "live": "You have no live ride right now",
+        "upcoming": "You have no upcoming rides",
+        "completed": "You have no completed rides yet",
+        "canceled": "You have no canceled rides"
+      }
     },
     "errors": {
       "loadFailed": "Failed to load rides"
