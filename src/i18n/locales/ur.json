@@ -18,7 +18,7 @@
       "dashboard": "ڈیش بورڈ",
       "registerUser": "یوزر رجسٹر کریں",
       "allRiders": "تمام رائیڈرز",
-      "activeRiders": "لائیو میپ",
+      "liveMap": "لائیو میپ",
       "editRider": "رائیڈر ترمیم کریں",
       "rides": "سواریاں",
       "rideView": "سواری",
@@ -29,9 +29,8 @@
     },
     "nav": {
       "dashboard": "ڈیش بورڈ",
-      "userManagement": "یوزر مینجمنٹ",
-      "totalRiders": "کل رائیڈرز",
-      "activeRiders": "لائیو میپ",
+      "allRiders": "تمام رائیڈرز",
+      "liveMap": "لائیو میپ",
       "rides": "سواریاں",
       "users": "صارفین",
       "myProfile": "میرا پروفائل",
@@ -654,7 +653,9 @@
     "caption": "ترتیب اور صفحہ بندی کے ساتھ صارفین کا جدول",
     "errors": {
       "loadFailed": "صارفین لوڈ نہیں ہو سکے۔"
-    }
+    },
+    "addNew": "نیا شامل کریں",
+    "addNewAria": "نیا صارف شامل کریں"
   },
   "errors": {
     "boundary": {

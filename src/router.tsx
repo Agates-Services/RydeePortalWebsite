@@ -10,6 +10,7 @@ import {
   AllRidersRoute,
   RiderEditRoute,
 } from "@/features/riders/routes";
+import { RiderEditRedirect } from "@/features/riders/RiderEditRedirect";
 import { RidesRoute, RiderRidesRoute, RideViewRoute, RiderRideViewRoute } from "@/features/rides/routes";
 import { UsersRoute } from "@/features/users/routes";
 import ErrorBoundaryPage from "@/features/errors/ErrorBoundaryPage";
@@ -46,7 +47,8 @@ export const router = createBrowserRouter([
             element: <ProtectedRoute allow={["Admin"]} />,
             children: [
               { path: "admin", element: <DashboardRoute /> },
-              { path: "admin/register", element: <RegisterPage showRole backTo="/admin" /> },
+              { path: "admin/register", element: <Navigate to="/admin/users/new" replace /> },
+              { path: "admin/users/new", element: <RegisterPage showRole backTo="/admin/users" /> },
             ],
           },
           {
@@ -56,7 +58,7 @@ export const router = createBrowserRouter([
               { path: "admin/pending-riders", element: <Navigate to="/admin/all-riders?status=pending" replace /> },
               { path: "admin/blocked-riders", element: <Navigate to="/admin/all-riders?status=blocked" replace /> },
               { path: "admin/all-riders", element: <AllRidersRoute /> },
-              { path: "admin/riders/:phone/edit", element: <RiderEditRoute /> },
+              { path: "admin/riders/:phone/edit", element: <RiderEditRedirect /> },
               { path: "admin/users", element: <UsersRoute /> },
               { path: "admin/users/:phone/edit", element: <RiderEditRoute /> },
               { path: "admin/rides", element: <RidesRoute /> },

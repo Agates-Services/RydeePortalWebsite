@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
-  UserPlus,
   Users,
   UserCog,
   Activity,
@@ -50,7 +49,6 @@ export function AppSidebar() {
   const { profile, logout } = useAuth();
   const { isMobile } = useSidebar();
   const home = roleHome(profile?.role);
-  const isAdmin = home === "/admin";
   const isRider = home === "/rider";
 
   const riderItems = [
@@ -81,27 +79,17 @@ export function AppSidebar() {
       icon: LayoutDashboard,
       active: pathname === home,
     },
-    ...(isAdmin
-      ? [
-          {
-            label: t("layout.nav.userManagement"),
-            to: "/admin/register",
-            icon: UserPlus,
-            active: pathname === "/admin/register",
-          },
-        ]
-      : []),
     {
-      label: t("layout.nav.totalRiders"),
+      label: t("layout.nav.users"),
+      to: "/admin/users",
+      icon: UserCog,
+      active: pathname.startsWith("/admin/users"),
+    },
+    {
+      label: t("layout.nav.allRiders"),
       to: "/admin/all-riders",
       icon: Users,
       active: pathname === "/admin/all-riders",
-    },
-    {
-      label: t("layout.nav.activeRiders"),
-      to: "/admin/active-riders",
-      icon: Activity,
-      active: pathname === "/admin/active-riders",
     },
     {
       label: t("layout.nav.rides"),
@@ -110,10 +98,10 @@ export function AppSidebar() {
       active: pathname.startsWith("/admin/rides"),
     },
     {
-      label: t("layout.nav.users"),
-      to: "/admin/users",
-      icon: UserCog,
-      active: pathname.startsWith("/admin/users"),
+      label: t("layout.nav.liveMap"),
+      to: "/admin/active-riders",
+      icon: Activity,
+      active: pathname === "/admin/active-riders",
     },
   ];
 

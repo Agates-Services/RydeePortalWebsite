@@ -538,7 +538,7 @@ export default function AllRiders() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/admin/riders/${encodeURIComponent(r.phone)}/edit`, { state: { row: r } });
+                          navigate(`/admin/users/${encodeURIComponent(r.phone)}/edit`, { state: { row: r, role: "Rider" } });
                         }}
                         aria-label={t("riders.all.editRiderAria", { name: r.name || "rider" })}
                         title={t("riders.edit.editRider")}

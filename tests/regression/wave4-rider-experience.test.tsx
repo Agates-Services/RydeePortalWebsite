@@ -154,25 +154,31 @@ describe("Wave 4 — sidebar role branch", () => {
     });
     expect(screen.getByRole("link", { name: /my rides/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /my profile/i })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /total riders/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /all riders/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /^rides$/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /user management/i })).toBeNull();
   });
 
-  it("Admin sees full staff nav", async () => {
+  it("Admin sees exactly Dashboard, Users, All riders, Rides, Live map in order (Wave 6)", async () => {
     renderSidebar("Admin");
     await waitFor(() => {
-      expect(screen.getByRole("link", { name: /total riders/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /all riders/i })).toBeInTheDocument();
     });
-    expect(screen.getByRole("link", { name: /user management/i })).toBeInTheDocument();
+    const links = screen.getAllByRole("link").map((a) => a.textContent?.trim() ?? "");
+    const navLabels = links.filter((l) => ["Dashboard", "Users", "All riders", "Rides", "Live map"].includes(l));
+    expect(navLabels).toEqual(["Dashboard", "Users", "All riders", "Rides", "Live map"]);
+    expect(screen.queryByRole("link", { name: /user management/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /my rides/i })).toBeNull();
   });
 
-  it("Operator sees staff nav without User management", async () => {
+  it("Operator sees exactly Dashboard, Users, All riders, Rides, Live map in order (Wave 6)", async () => {
     renderSidebar("Operator");
     await waitFor(() => {
-      expect(screen.getByRole("link", { name: /total riders/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /all riders/i })).toBeInTheDocument();
     });
+    const links = screen.getAllByRole("link").map((a) => a.textContent?.trim() ?? "");
+    const navLabels = links.filter((l) => ["Dashboard", "Users", "All riders", "Rides", "Live map"].includes(l));
+    expect(navLabels).toEqual(["Dashboard", "Users", "All riders", "Rides", "Live map"]);
     expect(screen.queryByRole("link", { name: /user management/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /my rides/i })).toBeNull();
   });

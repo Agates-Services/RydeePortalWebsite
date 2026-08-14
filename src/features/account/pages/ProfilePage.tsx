@@ -180,7 +180,7 @@ export default function ProfilePage() {
   const panelId = (k: TabKey) => `fqa-account-panel-${k}`;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
       <div role="tablist" aria-label={t("account.profile.title")} className="flex gap-1 border-b border-border">
         {(["profile", "settings"] as TabKey[]).map((k) => (
           <button

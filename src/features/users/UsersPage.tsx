@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Pencil, Search } from "lucide-react";
+import { Pencil, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -286,16 +286,30 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={filteredRows.length === 0}
-          aria-label={t("users.exportCsvAria", { count: filteredRows.length })}
-        >
-          {t("users.exportCsv")}
-        </Button>
+        <div className="flex items-center gap-2 md:ms-auto">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={filteredRows.length === 0}
+            aria-label={t("users.exportCsvAria", { count: filteredRows.length })}
+          >
+            {t("users.exportCsv")}
+          </Button>
+          {callerRole === "Admin" && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => navigate("/admin/users/new")}
+              aria-label={t("users.addNewAria")}
+              data-testid="fqa-users-add-new"
+            >
+              <Plus size={14} aria-hidden="true" className="me-1" />
+              {t("users.addNew")}
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="rounded-2xl border-border overflow-hidden p-0">

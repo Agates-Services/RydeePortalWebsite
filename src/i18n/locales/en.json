@@ -18,7 +18,7 @@
       "dashboard": "Dashboard",
       "registerUser": "Register user",
       "allRiders": "All riders",
-      "activeRiders": "Live map",
+      "liveMap": "Live map",
       "editRider": "Edit rider",
       "rides": "Rides",
       "rideView": "Ride",
@@ -29,9 +29,8 @@
     },
     "nav": {
       "dashboard": "Dashboard",
-      "userManagement": "User management",
-      "totalRiders": "Total riders",
-      "activeRiders": "Live map",
+      "allRiders": "All riders",
+      "liveMap": "Live map",
       "rides": "Rides",
       "users": "Users",
       "myProfile": "My profile",
@@ -654,7 +653,9 @@
     "caption": "Users table with sorting and pagination",
     "errors": {
       "loadFailed": "Could not load users."
-    }
+    },
+    "addNew": "Add new",
+    "addNewAria": "Add new user"
   },
   "errors": {
     "boundary": {

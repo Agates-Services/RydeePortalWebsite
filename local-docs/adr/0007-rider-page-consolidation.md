@@ -68,3 +68,34 @@ Owner confirmed on 2026-08-11 that continuing on mock data was acceptable until 
 - typecheck:strict: 0
 - vitest: 127/127
 - build OK; main-chunk gzip 216.37 → 210.74 kB (−5.63 kB net across B1+B2); new `LiveMap-*.js` chunk = 0.57 kB gzip; dist MSW hits: 0
+
+## Wave 5 amendment (2026-08-14) — Route unification + User management removal
+
+Owner-requested Wave 5 continues the consolidation theme of ADR-0007:
+
+1. **Rider edit path unified into the user edit path.**
+   - Old `/admin/riders/:phone/edit` no longer renders `RiderEditRoute` directly. It now renders `<RiderEditRedirect />` (`src/features/riders/RiderEditRedirect.tsx`) — a small `<Navigate replace>` that preserves `useLocation().state` (row seed + role) and hands off to `/admin/users/:phone/edit`.
+   - The redirect sits inside the same `Admin+Operator` `ProtectedRoute` group as the source path — H8 guard trace unchanged; the redirect is byte-identical in guard shape to the Wave 1 blocked-riders redirect and Wave 2 pending-riders redirect.
+   - Callers now navigate to `/admin/users/:phone/edit` directly (`AllRiders.tsx`, `RiderDetailSheet.tsx`) with `state: { row, role: "Rider" }`. `RiderEditPage` already branches on `navState.role` to gate the documents card, PIN reset, and status buttons — no fork was needed (H10).
+   - `DashboardLayout` title map updated: `/admin/users/*/edit` now yields `layout.title.editUser` (Rider or non-Rider); the old rider-specific matcher was retired.
+
+2. **User management nav item removed.**
+   - `layout.nav.userManagement` pruned from en+ur.
+   - Sidebar Admin branch no longer inserts the "User management" entry. `isAdmin` local removed (unused).
+   - `/admin/register` no longer renders `RegisterPage` — it now `<Navigate replace>`s to `/admin/users/new`, which is the new home for the admin-side register form (`RegisterPage showRole backTo="/admin/users"`). This keeps H2 in scope: the form still filters `Admin` out of the role dropdown (the ROLES contract is the enforcement point).
+   - `UsersPage` gains an "Add new" button (Plus icon) rendered on the right of the toolbar, immediately after the Export CSV button, visible only when `callerRole === "Admin"`. Clicking it navigates to `/admin/users/new`.
+
+3. **Registration role dropdown default bug (Q3) fixed.**
+   - `RegisterPage`'s initial `form.role` was `"rider"` (lowercase), which does not match any option value in the admin-mode `<select>` (`ROLES` values are title-case). The admin form therefore rendered with the visible disabled placeholder as the effective selection while `form.role` still submitted `""`.
+   - Fix: initial `form.role = ""`. `<option value="" disabled>` retained as the placeholder. When `showRole={false}` (public `/register`) the submit path forces `role: "rider"` at API call time, preserving the sole self-service flow. When `showRole={true}` the existing validator `(v) => (v ? "" : errorCopy)` blocks submission with a role validation error.
+
+4. **My Profile UI constrained.**
+   - `/account/profile` root container now `mx-auto flex w-full max-w-3xl …` matching `RiderEditPage`'s container width. The existing Cancel/Save + Change password button rows already used the same `justify-end` shape as the edit page — no further layout change needed.
+
+## Gate summary (Wave 5 tip)
+
+- lint: 0e/0w
+- typecheck: 0
+- typecheck:strict: 0
+- vitest: 167/167 (baseline 161 + 3 route/users tests in `wave5-route-unification` + 3 register tests in `wave5-register-role`; 2 stale expectations in `wave4-rider-experience` updated to reflect the sidebar removal)
+- build OK; MSW hits in `dist/assets/*.js`: 0

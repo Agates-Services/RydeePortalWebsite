@@ -50,7 +50,7 @@ export default function RegisterPage({ showRole = false, backTo }: RegisterPageP
     address: "",
     password: "",
     confirmPassword: "",
-    role: "rider",
+    role: "",
   });
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -173,7 +173,7 @@ export default function RegisterPage({ showRole = false, backTo }: RegisterPageP
         dob: dobToIso(form.dob),
         address: form.address,
         password: form.password,
-        role: form.role,
+        role: showRole ? form.role : "rider",
       });
       navigate("/login", { replace: true });
     } catch (err) {
