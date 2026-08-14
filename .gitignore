@@ -8,6 +8,7 @@ dist/
 .vscode/
 .idea/
 *.local
+local-docs/
 
 # Playwright E2E artifacts (opt-in, not part of default gates)
 /test-results/
