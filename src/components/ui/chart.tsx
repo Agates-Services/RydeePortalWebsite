@@ -39,7 +39,7 @@ export function ChartContainer({
         data-chart={chartId}
         className={cn(
           "flex aspect-square justify-center text-xs",
-          "[&_.recharts-sector[stroke=#fff]]:stroke-transparent",
+          "[&_.recharts-sector[stroke='#fff']]:stroke-transparent",
           "[&_.recharts-layer]:outline-none",
           "[&_.recharts-surface]:outline-none",
           className,
