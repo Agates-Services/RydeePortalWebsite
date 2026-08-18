@@ -14,7 +14,6 @@ const AdminStub = Stub("admin-page");
 const RiderStub = Stub("rider-page");
 const OperatorStub = Stub("operator-page");
 const ActiveRidersStub = Stub("active-riders-page");
-const PendingRidersStub = Stub("pending-riders-page");
 
 function makeRouter(initial: string[]) {
   return createMemoryRouter(
@@ -44,10 +43,7 @@ function makeRouter(initial: string[]) {
           },
           {
             element: <ProtectedRoute allow={["Admin", "Operator"]} />,
-            children: [
-              { path: "admin/active-riders", element: <ActiveRidersStub /> },
-              { path: "admin/pending-riders", element: <PendingRidersStub /> },
-            ],
+            children: [{ path: "admin/active-riders", element: <ActiveRidersStub /> }],
           },
           {
             element: <ProtectedRoute allow={["Operator"]} />,
@@ -75,7 +71,7 @@ function seedSession(profile: Profile) {
 }
 
 describe("guards (logged out) — deep-link protection", () => {
-  it.each(["/admin", "/rider", "/operator", "/admin/active-riders", "/admin/pending-riders"])(
+  it.each(["/admin", "/rider", "/operator", "/admin/active-riders"])(
     "deep-link to %s while unauthed → /login",
     async (path) => {
       renderAt(path);
@@ -92,16 +88,30 @@ describe("guards (logged in) — role isolation", () => {
     expect(screen.queryByTestId("admin-page")).toBeNull();
   });
 
+  it("W4: Admin cannot reach /rider (bounced to /admin)", async () => {
+    seedSession({ role: "Admin" });
+    renderAt("/rider");
+    expect(await screen.findByTestId("admin-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("rider-page")).toBeNull();
+  });
+
+  it("W4: Operator cannot reach /rider (bounced to /operator)", async () => {
+    seedSession({ role: "Operator" });
+    renderAt("/rider");
+    expect(await screen.findByTestId("operator-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("rider-page")).toBeNull();
+  });
+
   it("F3 amendment: Admin AND Operator can reach /admin/active-riders", async () => {
     seedSession({ role: "Admin" });
     renderAt("/admin/active-riders");
     expect(await screen.findByTestId("active-riders-page")).toBeInTheDocument();
   });
 
-  it("F3 amendment: Operator (not just Admin) can reach /admin/pending-riders", async () => {
+  it("F3 amendment: Operator (not just Admin) can reach /admin/active-riders", async () => {
     seedSession({ role: "Operator" });
-    renderAt("/admin/pending-riders");
-    expect(await screen.findByTestId("pending-riders-page")).toBeInTheDocument();
+    renderAt("/admin/active-riders");
+    expect(await screen.findByTestId("active-riders-page")).toBeInTheDocument();
   });
 
   it("Rider cannot reach /admin/active-riders (Rider not in allow)", async () => {

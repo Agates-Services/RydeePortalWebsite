@@ -9,16 +9,25 @@ const TITLE_KEYS: Record<string, string> = {
   "/admin": "layout.title.dashboard",
   "/admin/register": "layout.title.registerUser",
   "/admin/all-riders": "layout.title.allRiders",
-  "/admin/active-riders": "layout.title.activeRiders",
-  "/admin/pending-riders": "layout.title.pendingRiders",
-  "/admin/blocked-riders": "layout.title.blockedRiders",
+  "/admin/active-riders": "layout.title.liveMap",
+  "/admin/rides": "layout.title.rides",
+  "/admin/users": "layout.title.users",
   "/operator": "layout.title.dashboard",
+  "/rider": "layout.title.dashboard",
+  "/rider/rides": "layout.title.myRides",
+  "/account/profile": "layout.title.myProfile",
 };
 
 function titleKeyFor(pathname: string): string | null {
   if (TITLE_KEYS[pathname]) return TITLE_KEYS[pathname];
-  if (pathname.startsWith("/admin/riders/") && pathname.endsWith("/edit")) {
-    return "layout.title.editRider";
+  if (pathname.startsWith("/admin/users/") && pathname.endsWith("/edit")) {
+    return "layout.title.editUser";
+  }
+  if (pathname === "/admin/users/new") {
+    return "layout.title.registerUser";
+  }
+  if (pathname.startsWith("/admin/rides/") || pathname.startsWith("/rider/rides/")) {
+    return "layout.title.rideView";
   }
   return null;
 }

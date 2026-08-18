@@ -1,16 +1,17 @@
 node_modules/
 dist/
 .env
-.env.*
-!.env.example
+.env.local
+.env.development
+.env.qa
+.env.production
 .vscode/
 .idea/
 *.local
+local-docs/
 
 # Playwright E2E artifacts (opt-in, not part of default gates)
 /test-results/
 /playwright-report/
 /playwright/.cache/
 /blob-report/
-
-local-docs/

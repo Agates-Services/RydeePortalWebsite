@@ -5,7 +5,10 @@
     "accountMenu": "Account menu",
     "languageSwitcher": {
       "ariaLabel": "Change language"
-    }
+    },
+    "localeCode": "en-US",
+    "myProfile": "My profile",
+    "cancel": "Cancel"
   },
   "layout": {
     "brand": {
@@ -15,18 +18,23 @@
       "dashboard": "Dashboard",
       "registerUser": "Register user",
       "allRiders": "All riders",
-      "activeRiders": "Active riders",
-      "pendingRiders": "Pending riders",
-      "blockedRiders": "Blocked riders",
-      "editRider": "Edit rider"
+      "liveMap": "Live map",
+      "editRider": "Edit rider",
+      "rides": "Rides",
+      "rideView": "Ride",
+      "users": "Users",
+      "editUser": "Edit user",
+      "myProfile": "My profile",
+      "myRides": "My rides"
     },
     "nav": {
       "dashboard": "Dashboard",
-      "userManagement": "User management",
-      "totalRiders": "Total riders",
-      "activeRiders": "Active riders",
-      "pendingRiders": "Pending riders",
-      "blockedRiders": "Blocked riders"
+      "allRiders": "All riders",
+      "liveMap": "Live map",
+      "rides": "Rides",
+      "users": "Users",
+      "myProfile": "My profile",
+      "myRides": "My rides"
     }
   },
   "auth": {
@@ -47,7 +55,8 @@
         "passwordRequired": "Please enter your password.",
         "fallback": "Unable to sign in",
         "missingProfile": "Login response missing profile"
-      }
+      },
+      "sessionExpiredNotice": "Your session has expired. Please sign in again."
     },
     "register": {
       "headline": "Register",
@@ -132,50 +141,74 @@
         "aria": "View {{count}} blocked riders"
       }
     },
-    "activeRidersSection": {
-      "heading": "Active riders",
-      "subheading": "Latest {{shown}} of {{total}}",
-      "viewAll": "View all →",
-      "loading": "Loading active riders…",
-      "empty": "No active riders yet.",
-      "columns": {
-        "name": "Name",
-        "phone": "Phone",
-        "area": "Area",
-        "joined": "Joined"
-      },
-      "emptyCell": "—"
-    },
     "errors": {
       "loadFailed": "Dashboard: failed to load riders",
       "invalidResponse": "Invalid response shape"
     },
     "rider": {
-      "mapLoading": "Loading map…",
-      "welcome": "Welcome back {{name}} ",
-      "yourDashboard": "Your Dashboard",
-      "subhead": "Everything you need for your account.",
-      "profileHeading": "Rider Profile",
-      "profileCaption": "Rider profile summary",
-      "fields": {
-        "name": "Name",
-        "address": "Address",
-        "dob": "Date of Birth",
-        "area": "Area",
-        "gps": "GPS Location",
-        "totalRides": "Total Rides",
-        "missedRides": "Missed Rides",
-        "distanceTraveled": "Distance Traveled",
-        "onlineState": "Online State",
-        "ratings": "Ratings",
-        "activationStatus": "Activation Status"
-      },
+      "welcome": "Welcome back, {{name}}",
+      "subhead": "Your earnings, rides, and status at a glance.",
+      "locationHeading": "Your current location",
       "status": {
         "online": "Online",
         "offline": "Offline",
         "active": "Active",
         "inactive": "Inactive"
+      },
+      "stats": {
+        "earningsToday": "Today’s earnings",
+        "earningsTodayAria": "Today’s earnings",
+        "ridesTodayHint": "{{count}} rides today",
+        "earningsWeek": "This week’s earnings",
+        "earningsWeekHint": "From completed rides this week",
+        "earningsWeekAria": "This week’s earnings",
+        "ridesToday": "Rides completed today",
+        "ridesLifetimeHint": "Lifetime: {{count}}",
+        "ridesTodayAria": "Rides completed today",
+        "rating": "Rating",
+        "ratingHint": "Rider rating",
+        "ratingAria": "Rating {{rating}} out of 5",
+        "onlineStatus": "Online status",
+        "onlineStatusAria": "Currently {{online}}",
+        "acceptanceRate": "Acceptance rate",
+        "acceptanceRateAria": "Acceptance rate {{pct}} percent",
+        "missedHint": "Missed: {{count}}"
       }
+    },
+    "activeRidesSection": {
+      "heading": "Active rides",
+      "subheading": "Showing latest {{shown}}",
+      "caption": "Active rides",
+      "viewAll": "View all →",
+      "loading": "Loading active rides…",
+      "empty": "No active rides right now."
+    },
+    "ridesOverview": {
+      "title": "Rides overview",
+      "subtitle": "Distribution by outcome",
+      "slices": {
+        "completed": "Completed",
+        "canceled": "Canceled",
+        "live": "Live",
+        "upcoming": "Upcoming"
+      },
+      "trendUp": "Trending up {{pct}}% this month",
+      "trendDown": "Trending down {{pct}}% this month",
+      "trendFlat": "Steady this month",
+      "caption": "Showing all {{total}} rides to date",
+      "empty": "No ride data yet",
+      "srSummary": "{{completed}} completed, {{canceled}} canceled, {{live}} live, {{upcoming}} upcoming.",
+      "range": "{{from}} – {{to}}"
+    },
+    "busyAreas": {
+      "title": "Busy areas",
+      "subtitle": "Top pickup areas",
+      "axisLabel": "Rides",
+      "caption": "Top areas by rides to date",
+      "empty": "No area data yet",
+      "srItem": "{{label}}: {{count}} rides",
+      "legendBusiest": "Busiest area",
+      "legendOther": "Other areas"
     }
   },
   "riders": {
@@ -464,49 +497,220 @@
     },
     "active": {
       "total": "Total:",
-      "live": "Live — updates every 3s",
-      "states": {
-        "dispatching": "Dispatching",
-        "arriving": "Arriving",
-        "idle": "Idle"
+      "live": "Live",
+      "loading": "Loading live map…"
+    }
+  },
+  "rides": {
+    "loading": "Loading rides…",
+    "retry": "Retry",
+    "filterByStatus": "Filter by status",
+    "rowsPerPage": "Rows per page:",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {{cur}} of {{total}}",
+    "summary": "Showing {{from}}–{{to}} of {{count}} rides",
+    "liveCount": "{{count}} live rides",
+    "stalled": "Stalled",
+    "leavingIn": "Leaving list in {{time}}",
+    "minutesShort": "{{n}} min",
+    "viewRide": "View ride",
+    "viewRideAria": "View ride {{id}}",
+    "rowAria": "Ride {{id}}",
+    "rowStalledAria": "Ride {{id}}, stalled",
+    "unavailableTitle": "Rides data is not yet available",
+    "unavailableHint": "This feature requires backend deployment.",
+    "tabs": {
+      "live": "Live",
+      "upcoming": "Upcoming",
+      "completed": "Completed",
+      "canceled": "Canceled"
+    },
+    "columns": {
+      "rideId": "Ride ID",
+      "rider": "Rider",
+      "customer": "Customer",
+      "pickup": "Pickup",
+      "dropoff": "Dropoff",
+      "status": "Status",
+      "fare": "Fare",
+      "elapsed": "Elapsed",
+      "scheduledAt": "Scheduled",
+      "completedAt": "Completed",
+      "canceledBy": "Canceled by",
+      "actions": "Actions"
+    },
+    "status": {
+      "goingToPick": "Going to pick",
+      "waitingForRide": "Waiting for ride",
+      "inTransit": "In-transit",
+      "arrived": "Arrived",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "canceled": "Canceled"
+    },
+    "canceledBy": {
+      "rider": "Rider",
+      "customer": "Customer"
+    },
+    "search": {
+      "label": "Search rides",
+      "placeholder": "Search by ride ID, rider, customer, or location…"
+    },
+    "caption": {
+      "live": "Live rides",
+      "upcoming": "Upcoming rides",
+      "completed": "Completed rides",
+      "canceled": "Canceled rides",
+      "mine": {
+        "live": "My live ride",
+        "upcoming": "My upcoming rides",
+        "completed": "My completed rides",
+        "canceled": "My canceled rides"
       }
     },
-    "pending": {
-      "caption": "Pending riders",
-      "loading": "Loading pending riders…",
-      "emptyTitle": "No pending riders",
-      "emptyHint": "All rider applications have been reviewed.",
-      "searchSr": "Search pending riders",
-      "searchPlaceholder": "Search by name, phone, CNIC, or area…",
-      "noMatchesTitle": "No matches",
-      "noMatchesHint": "No pending riders match \"{{q}}\".",
-      "rowReviewAria": "Review application for {{name}}",
-      "noticeBlocked": "Rider blocked",
-      "noticeSaved": "Changes saved",
-      "noticeActivated": "{{name}} activated",
-      "noticeActivateFailed": "Failed to activate rider",
-      "noticeSaveFailed": "Failed to save changes",
-      "noSelectedTitle": "No rider selected",
-      "noSelectedHint": "Choose a rider from the table to review their application."
+    "empty": {
+      "live": "No live rides right now",
+      "upcoming": "No upcoming rides",
+      "completed": "No completed rides yet",
+      "canceled": "No canceled rides",
+      "mine": {
+        "live": "You have no live ride right now",
+        "upcoming": "You have no upcoming rides",
+        "completed": "You have no completed rides yet",
+        "canceled": "You have no canceled rides"
+      }
     },
-    "blocked": {
-      "caption": "Blocked riders",
-      "loading": "Loading blocked riders…",
-      "emptyTitle": "No blocked riders",
-      "emptyHint": "All riders currently have access.",
-      "searchSr": "Search blocked riders",
-      "searchPlaceholder": "Search by name, phone, CNIC, or area…",
-      "noMatchesTitle": "No matches",
-      "noMatchesHint": "No blocked riders match \"{{q}}\".",
-      "rowReviewAria": "Review blocked rider {{name}}",
-      "noticeUnblocked": "Rider unblocked",
-      "noSelectedTitle": "No rider selected",
-      "noSelectedHint": "Choose a rider from the table to view their profile.",
-      "unblock": "Unblock rider",
-      "unblockDialog": {
-        "title": "Unblock rider {{name}}?",
-        "description": "This rider will be able to operate again.",
-        "confirm": "Unblock rider"
+    "errors": {
+      "loadFailed": "Failed to load rides"
+    },
+    "viewRidePage": {
+      "back": "Back to Rides",
+      "mapPlaceholder": "Map coming soon",
+      "mapAria": "Map for ride {{id}}",
+      "notFoundTitle": "Ride not found",
+      "notFoundHint": "No ride matches that ID.",
+      "stalled": "Location stale",
+      "tileError": "Map tiles failed to load. Check your connection.",
+      "geometryUnavailable": "Route unavailable — showing straight line",
+      "lastUpdate": "Last update",
+      "detailsTitle": "Ride Details",
+      "completion": "Completion time",
+      "distanceTraveled": "Distance travelled",
+      "plannedDistance": "Planned distance",
+      "waitingTime": "Waiting time",
+      "estCompletion": "Estimated completion",
+      "minutesValue": "{{count}} min",
+      "kmValue": "{{km}} km"
+    },
+    "markers": {
+      "pickup": "Pickup",
+      "dropoff": "Dropoff",
+      "rider": "Rider location",
+      "updatedAgo": "Updated {{value}} {{unit}} ago",
+      "units": {
+        "sec": "sec",
+        "min": "min"
+      },
+      "riderWithEta": "Rider — {{minutes}} min ({{km}} km)"
+    }
+  },
+  "users": {
+    "loading": "Loading users…",
+    "retry": "Try again",
+    "search": "Search users",
+    "searchPlaceholder": "Search name, phone or email",
+    "filterByRole": "Filter by role",
+    "tabs": {
+      "all": "All"
+    },
+    "roles": {
+      "Admin": "Admin",
+      "Operator": "Operator"
+    },
+    "columns": {
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "role": "Role",
+      "joined": "Joined",
+      "actions": "Actions"
+    },
+    "rowsPerPage": "Rows per page",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {{cur}} of {{total}}",
+    "summary": "Showing {{from}}–{{to}} of {{count}}",
+    "summaryFiltered": "Showing {{from}}–{{to}} of {{count}} (filtered from {{total}})",
+    "rowOpenAria": "Open edit for {{name}}",
+    "editUser": "Edit",
+    "editUserAria": "Edit {{name}}",
+    "exportCsv": "Export CSV",
+    "exportCsvAria": "Export {{count}} rows as CSV",
+    "emptyTitle": "No users match your filters",
+    "emptyHint": "Try clearing search or role tab.",
+    "clearFilters": "Clear filters",
+    "caption": "Users table with sorting and pagination",
+    "errors": {
+      "loadFailed": "Could not load users."
+    },
+    "addNew": "Add new",
+    "addNewAria": "Add new user"
+  },
+  "errors": {
+    "boundary": {
+      "title": "Something went wrong",
+      "message": "The page failed to load. Try reloading, or head back to the dashboard.",
+      "reload": "Reload",
+      "goHome": "Go to dashboard"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "message": "The page you are looking for does not exist or has moved.",
+      "goHome": "Go to dashboard"
+    }
+  },
+  "account": {
+    "profile": {
+      "title": "My profile",
+      "tabs": {
+        "profile": "Profile",
+        "settings": "Settings"
+      },
+      "fields": {
+        "name": "Name",
+        "phone": "Phone",
+        "role": "Role",
+        "address": "Address",
+        "activationStatus": "Activation status"
+      },
+      "save": "Save changes",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "saved": "Profile saved",
+      "saveFailed": "Failed to save profile",
+      "discardTitle": "Discard unsaved changes?",
+      "discardDesc": "Your edits will be lost.",
+      "discardConfirm": "Discard"
+    },
+    "settings": {
+      "language": {
+        "title": "Language"
+      },
+      "password": {
+        "title": "Change password",
+        "current": "Current password",
+        "new": "New password",
+        "confirm": "Confirm new password",
+        "submit": "Change password",
+        "submitting": "Changing…",
+        "changed": "Password changed",
+        "mismatch": "New passwords do not match.",
+        "minLength": "Password must be at least 8 characters.",
+        "currentRequired": "Enter your current password.",
+        "changeFailed": "Could not change password.",
+        "unavailable": "Password change is not yet available.",
+        "hint": "Choose a strong password of at least 8 characters."
       }
     }
   }

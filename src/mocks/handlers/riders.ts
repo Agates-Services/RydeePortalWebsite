@@ -2,7 +2,6 @@ import { http, HttpResponse } from "msw";
 import {
   API_ACTIVATE_RIDER_URL,
   API_GET_ALL_RIDERS_URL,
-  API_GET_UNREGISTERED_RIDERS_URL,
   API_RESET_RIDER_PIN_URL,
   API_UPDATE_USER_URL,
 } from "@/api/riders";
@@ -41,140 +40,6 @@ interface RiderEnvelope {
 function envelope(profile: RiderProfile): RiderEnvelope {
   return { role: "rider", profile };
 }
-
-const commonLoc = { lat: 42.485772350201664, lon: -70.89848771426291 };
-
-const inactiveSeeds: RiderProfile[] = [
-  {
-    id: 1,
-    name: "Muhammad Imran",
-    phone: "0312-4561234",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "1998-06-14",
-    cnic: "42101-7654321-3",
-    documents: ["CNIC Copy", "Profile Photo"],
-    pin: "",
-    address: "House#100, Sultan road",
-    rideState: "Invalid",
-    dateOfJoining: "2026-07-31T02:57:31.455Z",
-    totalRides: 0,
-    totalDistance: 0,
-    missedRides: 0,
-    online: false,
-    currentLocation: commonLoc,
-    rating: 0,
-    lastCustomerID: "1234",
-  },
-  {
-    id: 2,
-    name: "Naveed Akhtar",
-    phone: "0321-9876543",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "1995-11-02",
-    cnic: "42201-1234567-1",
-    documents: ["CNIC Copy"],
-    pin: "",
-    address: "73 Nason Rd",
-    rideState: "Invalid",
-    dateOfJoining: "2026-07-31T01:18:14.284Z",
-    totalRides: 0,
-    totalDistance: 0,
-    missedRides: 0,
-    online: false,
-    currentLocation: commonLoc,
-    rating: 0,
-    lastCustomerID: "1234",
-  },
-  {
-    id: 3,
-    name: "Shoaib Malik",
-    phone: "0333-1122334",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "2000-03-25",
-    cnic: "42301-9988776-5",
-    documents: ["CNIC Copy", "Profile Photo", "Bike Registration"],
-    pin: "",
-  },
-  {
-    id: 4,
-    name: "Rizwan Ghafoor",
-    phone: "0345-5544332",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "1993-08-19",
-    cnic: "42101-4433221-7",
-    documents: [],
-    pin: "",
-  },
-  {
-    id: 5,
-    name: "Danish Mehmood",
-    phone: "0300-7654321",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "1997-01-30",
-    cnic: "42401-6677889-2",
-    documents: ["CNIC Copy", "Bike Registration"],
-    pin: "",
-  },
-  {
-    id: 6,
-    name: "Kashif Noor",
-    phone: "0311-2233445",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "2001-09-07",
-    cnic: "42501-1122334-9",
-    documents: ["Profile Photo"],
-    pin: "",
-  },
-  {
-    id: 7,
-    name: "Sajid Iqbal",
-    phone: "0322-8877665",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "1996-12-20",
-    cnic: "42601-5566778-4",
-    documents: ["CNIC Copy", "Profile Photo", "Driving License"],
-    pin: "",
-  },
-  {
-    id: 8,
-    name: "Adnan Rasheed",
-    phone: "0343-3344556",
-    activationStatus: "pending",
-    area: "un-assigned",
-    dob: "1999-05-11",
-    cnic: "42101-2233445-6",
-    documents: [],
-    pin: "",
-  },
-  {
-    id: 101,
-    name: "Usman Tariq",
-    phone: "0300-1111111",
-    activationStatus: "active",
-    area: "Saddar",
-  },
-  {
-    id: 102,
-    name: "Bilal Hussain",
-    phone: "0300-2222222",
-    activationStatus: "active",
-    area: "Clifton",
-  },
-  {
-    id: 103,
-    name: "Zain ul Abidin",
-    phone: "0300-3333333",
-    activationStatus: "active",
-    area: "Gulshan-e-Iqbal",
-  },
-];
 
 // Seeds mix wire-field aliases so the mapper is exercised end-to-end.
 const allRidersSeeds: RiderProfile[] = [
@@ -367,9 +232,6 @@ function generatePin(): string {
 }
 
 export const ridersHandlers = [
-  http.post(API_GET_UNREGISTERED_RIDERS_URL, async () => {
-    return HttpResponse.json({ riders: inactiveSeeds.map(envelope) });
-  }),
   http.post(API_GET_ALL_RIDERS_URL, async () => {
     return HttpResponse.json({ riders: allRidersSeeds.map(envelope) });
   }),
@@ -383,22 +245,15 @@ export const ridersHandlers = [
         { status: 400 },
       );
     }
-    const inSeed = inactiveSeeds.find((s) => normalisePhone(s.phone) === phone);
     const inAll = allRidersSeeds.find((s) => normalisePhone(s.phone) === phone);
-    if (!inSeed && !inAll) {
+    if (!inAll) {
       return HttpResponse.json(
         { success: false, error: "User profile does not exist!" },
         { status: 404 },
       );
     }
-    if (inSeed) {
-      inSeed.activationStatus = "active";
-      inSeed.pin = pin;
-    }
-    if (inAll) {
-      inAll.activationStatus = "active";
-      inAll.pin = pin;
-    }
+    inAll.activationStatus = "active";
+    inAll.pin = pin;
     return HttpResponse.json({
       success: true,
       message: "User profile activated and PIN set successfully",
@@ -419,10 +274,7 @@ export const ridersHandlers = [
     const patch = { ...body };
     delete patch.phone;
     delete patch.role;
-    const targets = [
-      ...inactiveSeeds.filter((s) => normalisePhone(s.phone) === key),
-      ...allRidersSeeds.filter((s) => normalisePhone(s.phone) === key),
-    ];
+    const targets = allRidersSeeds.filter((s) => normalisePhone(s.phone) === key);
     for (const target of targets) {
       Object.assign(target, patch);
     }
@@ -439,14 +291,12 @@ export const ridersHandlers = [
       return HttpResponse.json({ success: false, error: "phone and role are required" }, { status: 400 });
     }
     const key = normalisePhone(phone);
-    const inSeed = inactiveSeeds.find((s) => normalisePhone(s.phone) === key);
     const inAll = allRidersSeeds.find((s) => normalisePhone(s.phone) === key);
-    if (!inSeed && !inAll) {
+    if (!inAll) {
       return HttpResponse.json({ success: false, error: "Rider not found" }, { status: 404 });
     }
     const pin = generatePin();
-    if (inSeed) inSeed.pin = pin;
-    if (inAll) inAll.pin = pin;
+    inAll.pin = pin;
     const lastResetAt = new Date().toISOString();
     pinResetAt.set(key, lastResetAt);
     return HttpResponse.json({ success: true, pin, lastResetAt });

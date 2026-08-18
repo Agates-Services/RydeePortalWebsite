@@ -14,8 +14,9 @@ import {
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = process.env.CHECK_ENV_PROJECT_ROOT ?? path.resolve(scriptDirectory, "..");
 
-// Passing "" as the prefix returns every variable (not just VITE_*) so the validator can see them all. Mode "production" matches what `vite build` uses so the .env resolution order matches the real build.
-const viteEnvironment = loadEnv("production", projectRoot, "");
+// Passing "" as the prefix returns every variable (not just VITE_*) so the validator can see them all. First positional argv lets build:qa point the gate at .env.qa; defaults to "production" to match plain `vite build`.
+const viteMode = process.argv[2] ?? "production";
+const viteEnvironment = loadEnv(viteMode, projectRoot, "");
 
 const validation = validateEnvironment(viteEnvironment);
 

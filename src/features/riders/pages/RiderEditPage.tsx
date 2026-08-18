@@ -3,6 +3,8 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Camera, Copy, Download, Eye, FileUp, Info, KeyRound, Loader2, Lock, ShieldOff, Trash2, X } from "lucide-react";
 import { activateRider, getAllRiders, resetRiderPin, updateUser } from "@/api/riders";
+import { getAllUsers } from "@/api/users";
+import { useAuth } from "@/features/auth/useAuth";
 import type { RiderStatus } from "@/types/rider";
 import {
   deleteRiderDocument,
@@ -134,13 +136,24 @@ export default function RiderEditPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const navState = location.state as { backSearch?: string; row?: AllRidersRow } | null;
+  const { profile: authProfile } = useAuth();
+  const navState = location.state as {
+    backSearch?: string;
+    row?: AllRidersRow | { id: number; name: string; phone: string; email?: string; area?: string; joinedAt?: string };
+    role?: string;
+    backTo?: string;
+  } | null;
   const backSearch = navState?.backSearch ?? "";
-  const backTo = `/admin/all-riders${backSearch}`;
+  const editedRole: "Rider" | "Admin" | "Operator" =
+    navState?.role === "Admin" ? "Admin" : navState?.role === "Operator" ? "Operator" : "Rider";
+  const isRider = editedRole === "Rider";
+  const backTo = navState?.backTo ?? (isRider ? `/admin/all-riders${backSearch}` : "/admin/users");
 
   const targetPhone = normalisePhone(decodeURIComponent(phoneParam ?? ""));
-  const seededRow =
-    navState?.row && normalisePhone(navState.row.phone) === targetPhone ? navState.row : null;
+  const seededRow: AllRidersRow | null =
+    navState?.row && normalisePhone(navState.row.phone) === targetPhone
+      ? (navState.row as AllRidersRow)
+      : null;
 
   const [row, setRow] = useState<AllRidersRow | null>(seededRow);
   const [loading, setLoading] = useState(seededRow === null);
@@ -198,6 +211,7 @@ export default function RiderEditPage() {
   const selectTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const hasSeed = seededRow !== null;
+  const callerRole = authProfile?.role ?? "";
   useEffect(() => {
     if (hasSeed) return;
     let cancelled = false;
@@ -205,17 +219,39 @@ export default function RiderEditPage() {
     setLoadError(null);
     (async () => {
       try {
-        const data = await getAllRiders();
-        if (cancelled) return;
-        const rows = mapAllRidersResponse(data.riders ?? []);
         const target = normalisePhone(decodeURIComponent(phoneParam ?? ""));
-        const match = rows.find((r) => normalisePhone(r.phone) === target) ?? null;
+        let match: AllRidersRow | null = null;
+        if (isRider) {
+          const data = await getAllRiders();
+          if (cancelled) return;
+          const rows = mapAllRidersResponse(data.riders ?? []);
+          match = rows.find((r) => normalisePhone(r.phone) === target) ?? null;
+        } else {
+          const data = await getAllUsers(callerRole);
+          if (cancelled) return;
+          const found = data.users.find(
+            (u) => normalisePhone(String(u.phone ?? "")) === target,
+          );
+          if (found) {
+            match = {
+              id: typeof found.id === "number" ? found.id : 0,
+              name: typeof found.name === "string" ? found.name : "",
+              phone: String(found.phone ?? ""),
+              email: typeof found.email === "string" ? found.email : "",
+              area: typeof found.area === "string" ? found.area : "",
+              cnic: "",
+              dob: "",
+              joinedAt: typeof found.joinedAt === "string" ? found.joinedAt : "",
+              status: "active",
+            } as AllRidersRow;
+          }
+        }
         setRow(match);
         if (match) {
           const initial: FormState = { name: match.name ?? "", area: match.area ?? "", address: "", cnic: match.cnic ?? "", dob: match.dob ?? "" };
           setForm(initial);
           initialFormRef.current = initial;
-          setStatus(match.status);
+          if (isRider) setStatus(match.status);
         }
       } catch (err) {
         if (cancelled) return;
@@ -225,10 +261,10 @@ export default function RiderEditPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [phoneParam, t, hasSeed]);
+  }, [phoneParam, t, hasSeed, isRider, callerRole]);
 
   useEffect(() => {
-    if (!row) return;
+    if (!row || !isRider) return;
     let cancelled = false;
     (async () => {
       const docs = await getRiderDocuments(row.phone, "Rider");
@@ -237,7 +273,7 @@ export default function RiderEditPage() {
       else { setDocuments(docs); setDocsUnavailable(false); }
     })();
     return () => { cancelled = true; };
-  }, [row]);
+  }, [row, isRider]);
 
   const docsByType = useMemo(() => {
     const map: Partial<Record<string, RiderDocument>> = {};
@@ -555,7 +591,7 @@ export default function RiderEditPage() {
     if (Object.keys(diff).length === 0) return;
     setSaving(true); setSaveError(null); setSaved(false);
     try {
-      await updateUser(row.phone, "Rider", diff);
+      await updateUser(row.phone, editedRole, diff);
       const nextInitial: FormState = { ...form, name: form.name.trim(), cnic: normalizeCnicInput(form.cnic) };
       initialFormRef.current = nextInitial;
       setForm(nextInitial);
@@ -622,7 +658,7 @@ export default function RiderEditPage() {
             {profilePhoto && <AvatarImage src={profilePhoto.downloadUrl} alt="" />}
             <AvatarFallback className="text-base font-medium" style={{ backgroundColor: avatarBg(row.phone || row.name), color: "#1f2937" }}>{initials(row.name)}</AvatarFallback>
           </Avatar>
-          {!docsUnavailable && (
+          {isRider && !docsUnavailable && (
             <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={cameraDisabled} aria-label={t("riders.edit.documents.avatarCameraAria")} className="absolute -bottom-1 -end-1 inline-flex size-6 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
               <Camera size={12} aria-hidden="true" />
             </button>
@@ -631,9 +667,16 @@ export default function RiderEditPage() {
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold text-foreground">{row.name || "\u2014"}</h2>
-          <div className="mt-1 flex">
-            <Badge className="gap-1.5 rounded-full border-transparent px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: STATUS_BG[status ?? row.status] ?? STATUS_BG.offboarded }}>{t(`riders.common.badges.${status ?? row.status}`)}</Badge>
-          </div>
+          {isRider && (
+            <div className="mt-1 flex">
+              <Badge className="gap-1.5 rounded-full border-transparent px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: STATUS_BG[status ?? row.status] ?? STATUS_BG.offboarded }}>{t(`riders.common.badges.${status ?? row.status}`)}</Badge>
+            </div>
+          )}
+          {!isRider && (
+            <div className="mt-1 flex">
+              <Badge variant="outline" className="gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium">{t(`users.roles.${editedRole}`)}</Badge>
+            </div>
+          )}
         </div>
         <div className="ms-auto hidden flex-wrap items-center justify-end gap-2 md:flex">
           <Button type="button" variant="outline" onClick={handleBack} disabled={saving}>{t("riders.edit.cancel")}</Button>
@@ -704,6 +747,7 @@ export default function RiderEditPage() {
           </div>
         </Card>
 
+        {isRider && (
         <Card className="mt-4 p-4 md:mt-6 md:p-6 xl:mt-0" data-testid="fqa-rider-status">
           <section aria-labelledby="fqa-status-heading">
             <div className="flex items-center justify-between gap-2">
@@ -784,6 +828,9 @@ export default function RiderEditPage() {
           </section>
         </Card>
 
+        )}
+
+        {isRider && (
         <Card className="mt-4 p-4 md:mt-6 md:p-6 xl:mt-0" data-testid="fqa-rider-pin">
           <section aria-labelledby="fqa-pin-heading">
             <div className="flex items-center justify-between gap-2">
@@ -813,8 +860,10 @@ export default function RiderEditPage() {
             </div>
           </section>
         </Card>
+        )}
         </div>
 
+        {isRider && (
         <Card className="mt-4 p-4 md:mt-6 md:p-6 xl:mt-0" data-testid="fqa-rider-documents">
           <section aria-labelledby="fqa-docs-heading">
             <div className="flex items-center justify-between gap-2">
@@ -918,6 +967,7 @@ export default function RiderEditPage() {
             )}
           </section>
         </Card>
+        )}
         </div>
 
         <div className="sticky bottom-4 mt-6 flex flex-col-reverse gap-2 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-end sm:gap-3 md:hidden">

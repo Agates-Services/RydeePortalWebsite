@@ -56,7 +56,7 @@ export function RiderDetailSheet({ row, open, onOpenChange }: RiderDetailSheetPr
   const handleEdit = () => {
     if (!row?.phone) return;
     onOpenChange(false);
-    navigate(`/admin/riders/${encodeURIComponent(row.phone)}/edit`, { state: { row } });
+    navigate(`/admin/users/${encodeURIComponent(row.phone)}/edit`, { state: { row, role: "Rider" } });
   };
 
   return (

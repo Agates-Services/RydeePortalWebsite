@@ -5,7 +5,10 @@
     "accountMenu": "اکاؤنٹ مینو",
     "languageSwitcher": {
       "ariaLabel": "زبان تبدیل کریں"
-    }
+    },
+    "localeCode": "ur-PK",
+    "myProfile": "میرا پروفائل",
+    "cancel": "منسوخ کریں"
   },
   "layout": {
     "brand": {
@@ -15,18 +18,23 @@
       "dashboard": "ڈیش بورڈ",
       "registerUser": "یوزر رجسٹر کریں",
       "allRiders": "تمام رائیڈرز",
-      "activeRiders": "ایکٹو رائیڈرز",
-      "pendingRiders": "پینڈنگ رائیڈرز",
-      "blockedRiders": "بلاک شدہ رائیڈرز",
-      "editRider": "رائیڈر ترمیم کریں"
+      "liveMap": "لائیو میپ",
+      "editRider": "رائیڈر ترمیم کریں",
+      "rides": "سواریاں",
+      "rideView": "سواری",
+      "users": "صارفین",
+      "editUser": "صارف میں ترمیم",
+      "myProfile": "میرا پروفائل",
+      "myRides": "میری رائیڈز"
     },
     "nav": {
       "dashboard": "ڈیش بورڈ",
-      "userManagement": "یوزر مینجمنٹ",
-      "totalRiders": "کل رائیڈرز",
-      "activeRiders": "ایکٹو رائیڈرز",
-      "pendingRiders": "پینڈنگ رائیڈرز",
-      "blockedRiders": "بلاک شدہ رائیڈرز"
+      "allRiders": "تمام رائیڈرز",
+      "liveMap": "لائیو میپ",
+      "rides": "سواریاں",
+      "users": "صارفین",
+      "myProfile": "میرا پروفائل",
+      "myRides": "میری رائیڈز"
     }
   },
   "auth": {
@@ -47,7 +55,8 @@
         "passwordRequired": "برائے مہربانی اپنا پاس ورڈ درج کریں۔",
         "fallback": "سائن ان نہیں ہو سکا",
         "missingProfile": "لاگ ان رسپانس میں پروفائل موجود نہیں"
-      }
+      },
+      "sessionExpiredNotice": "آپ کا سیشن ختم ہو گیا ہے۔ براہ کرم دوبارہ سائن ان کریں۔"
     },
     "register": {
       "headline": "رجسٹر کریں",
@@ -132,50 +141,74 @@
         "aria": "{{count}} بلاک شدہ رائیڈرز دیکھیں"
       }
     },
-    "activeRidersSection": {
-      "heading": "ایکٹو رائیڈرز",
-      "subheading": "{{total}} میں سے تازہ ترین {{shown}}",
-      "viewAll": "سب دیکھیں ←",
-      "loading": "ایکٹو رائیڈرز لوڈ ہو رہے ہیں…",
-      "empty": "ابھی کوئی ایکٹو رائیڈر نہیں۔",
-      "columns": {
-        "name": "نام",
-        "phone": "فون",
-        "area": "علاقہ",
-        "joined": "شامل ہوا"
-      },
-      "emptyCell": "—"
-    },
     "errors": {
       "loadFailed": "Dashboard: failed to load riders",
       "invalidResponse": "Invalid response shape"
     },
     "rider": {
-      "mapLoading": "میپ لوڈ ہو رہا ہے…",
-      "welcome": "خوش آمدید {{name}} ",
-      "yourDashboard": "آپ کا ڈیش بورڈ",
-      "subhead": "آپ کے اکاؤنٹ کے لیے سب کچھ۔",
-      "profileHeading": "رائیڈر پروفائل",
-      "profileCaption": "رائیڈر پروفائل خلاصہ",
-      "fields": {
-        "name": "نام",
-        "address": "پتہ",
-        "dob": "تاریخِ پیدائش",
-        "area": "علاقہ",
-        "gps": "GPS لوکیشن",
-        "totalRides": "کل رائیڈز",
-        "missedRides": "مسڈ رائیڈز",
-        "distanceTraveled": "طے شدہ فاصلہ",
-        "onlineState": "آن لائن اسٹیٹ",
-        "ratings": "ریٹنگز",
-        "activationStatus": "ایکٹیویشن اسٹیٹس"
-      },
+      "welcome": "خوش آمدید، {{name}}",
+      "subhead": "آپ کی کمائی، رائیڈز اور حیثیت ایک نظر میں۔",
+      "locationHeading": "آپ کا موجودہ مقام",
       "status": {
         "online": "آن لائن",
         "offline": "آف لائن",
-        "active": "ایکٹو",
+        "active": "فعال",
         "inactive": "غیر فعال"
+      },
+      "stats": {
+        "earningsToday": "آج کی کمائی",
+        "earningsTodayAria": "آج کی کمائی",
+        "ridesTodayHint": "آج {{count}} رائیڈز",
+        "earningsWeek": "اس ہفتے کی کمائی",
+        "earningsWeekHint": "اس ہفتے مکمل ہوئی رائیڈز سے",
+        "earningsWeekAria": "اس ہفتے کی کمائی",
+        "ridesToday": "آج مکمل ہوئی رائیڈز",
+        "ridesLifetimeHint": "کل: {{count}}",
+        "ridesTodayAria": "آج مکمل ہوئی رائیڈز",
+        "rating": "ریٹنگ",
+        "ratingHint": "رائیڈر ریٹنگ",
+        "ratingAria": "ریٹنگ {{rating}} از 5",
+        "onlineStatus": "آن لائن حیثیت",
+        "onlineStatusAria": "اس وقت {{online}}",
+        "acceptanceRate": "قبولیت کی شرح",
+        "acceptanceRateAria": "قبولیت کی شرح {{pct}} فیصد",
+        "missedHint": "مِسڈ: {{count}}"
       }
+    },
+    "activeRidesSection": {
+      "heading": "ایکٹو رائیڈز",
+      "subheading": "تازہ ترین {{shown}} دکھائے جا رہے ہیں",
+      "caption": "ایکٹو رائیڈز",
+      "viewAll": "سب دیکھیں ←",
+      "loading": "ایکٹو رائیڈز لوڈ ہو رہی ہیں…",
+      "empty": "ابھی کوئی ایکٹو رائیڈ نہیں۔"
+    },
+    "ridesOverview": {
+      "title": "رائیڈز کا جائزہ",
+      "subtitle": "نتیجے کے حساب سے تقسیم",
+      "slices": {
+        "completed": "مکمل",
+        "canceled": "منسوخ",
+        "live": "لائیو",
+        "upcoming": "آنے والی"
+      },
+      "trendUp": "اس مہینے {{pct}}% اضافہ",
+      "trendDown": "اس مہینے {{pct}}% کمی",
+      "trendFlat": "اس مہینے مستحکم",
+      "caption": "اب تک کی تمام {{total}} رائیڈز دکھائی جا رہی ہیں",
+      "empty": "ابھی کوئی ڈیٹا نہیں",
+      "srSummary": "{{completed}} مکمل، {{canceled}} منسوخ، {{live}} لائیو، {{upcoming}} آنے والی۔",
+      "range": "{{from}} تا {{to}}"
+    },
+    "busyAreas": {
+      "title": "مصروف علاقے",
+      "subtitle": "سرِفہرست پک اپ علاقے",
+      "axisLabel": "رائیڈز",
+      "caption": "اب تک رائیڈز کے حساب سے سرِفہرست علاقے",
+      "empty": "ابھی کوئی ڈیٹا نہیں",
+      "srItem": "{{label}}: {{count}} رائیڈز",
+      "legendBusiest": "سب سے مصروف علاقہ",
+      "legendOther": "دوسرے علاقے"
     }
   },
   "riders": {
@@ -464,49 +497,220 @@
     },
     "active": {
       "total": "کل:",
-      "live": "لائیو — ہر 3 سیکنڈ میں اپڈیٹ",
-      "states": {
-        "dispatching": "ڈسپیچنگ",
-        "arriving": "پہنچ رہے ہیں",
-        "idle": "آئیڈل"
+      "live": "لائیو",
+      "loading": "لائیو میپ لوڈ ہو رہا ہے…"
+    }
+  },
+  "rides": {
+    "loading": "سواریاں لوڈ ہو رہی ہیں…",
+    "retry": "دوبارہ کوشش کریں",
+    "filterByStatus": "اسٹیٹس کے لحاظ سے فلٹر کریں",
+    "rowsPerPage": "فی صفحہ رَوز:",
+    "prevPage": "پچھلا صفحہ",
+    "nextPage": "اگلا صفحہ",
+    "page": "صفحہ {{cur}} از {{total}}",
+    "summary": "{{count}} سواریوں میں سے {{from}}–{{to}} دکھائی جا رہی ہیں",
+    "liveCount": "{{count}} لائیو سواریاں",
+    "stalled": "رکی ہوئی",
+    "leavingIn": "{{time}} میں فہرست سے نکلے گی",
+    "minutesShort": "{{n}} منٹ",
+    "viewRide": "سواری دیکھیں",
+    "viewRideAria": "سواری {{id}} دیکھیں",
+    "rowAria": "سواری {{id}}",
+    "rowStalledAria": "سواری {{id}}، رکی ہوئی",
+    "unavailableTitle": "سواریوں کا ڈیٹا ابھی دستیاب نہیں ہے",
+    "unavailableHint": "اس فیچر کے لیے بیک اینڈ ڈپلائمنٹ درکار ہے۔",
+    "tabs": {
+      "live": "لائیو",
+      "upcoming": "آنے والی",
+      "completed": "مکمل ہو چکی",
+      "canceled": "منسوخ شدہ"
+    },
+    "columns": {
+      "rideId": "سواری ID",
+      "rider": "رائیڈر",
+      "customer": "کسٹمر",
+      "pickup": "پک اپ",
+      "dropoff": "ڈراپ آف",
+      "status": "اسٹیٹس",
+      "fare": "کرایہ",
+      "elapsed": "گزرا وقت",
+      "scheduledAt": "شیڈولڈ",
+      "completedAt": "مکمل ہوا",
+      "canceledBy": "منسوخ کرنے والا",
+      "actions": "ایکشنز"
+    },
+    "status": {
+      "goingToPick": "پک اپ کی طرف جا رہا ہے",
+      "waitingForRide": "سواری کا انتظار",
+      "inTransit": "ٹرانزٹ میں",
+      "arrived": "پہنچ گیا",
+      "scheduled": "شیڈولڈ",
+      "completed": "مکمل",
+      "canceled": "منسوخ"
+    },
+    "canceledBy": {
+      "rider": "رائیڈر",
+      "customer": "کسٹمر"
+    },
+    "search": {
+      "label": "سواریاں تلاش کریں",
+      "placeholder": "سواری ID، رائیڈر، کسٹمر یا مقام سے تلاش کریں…"
+    },
+    "caption": {
+      "live": "لائیو سواریاں",
+      "upcoming": "آنے والی سواریاں",
+      "completed": "مکمل شدہ سواریاں",
+      "canceled": "منسوخ شدہ سواریاں",
+      "mine": {
+        "live": "میری لائیو رائیڈ",
+        "upcoming": "میری آنے والی رائیڈز",
+        "completed": "میری مکمل شدہ رائیڈز",
+        "canceled": "میری منسوخ شدہ رائیڈز"
       }
     },
-    "pending": {
-      "caption": "پینڈنگ رائیڈرز",
-      "loading": "پینڈنگ رائیڈرز لوڈ ہو رہے ہیں…",
-      "emptyTitle": "کوئی پینڈنگ رائیڈر نہیں",
-      "emptyHint": "تمام رائیڈر ایپلیکیشنز کا جائزہ لیا جا چکا ہے۔",
-      "searchSr": "پینڈنگ رائیڈرز تلاش کریں",
-      "searchPlaceholder": "نام، فون، شناختی کارڈ، یا ایریا سے تلاش کریں…",
-      "noMatchesTitle": "کوئی میچ نہیں",
-      "noMatchesHint": "\"{{q}}\" سے کوئی پینڈنگ رائیڈر میچ نہیں ہوا۔",
-      "rowReviewAria": "{{name}} کی ایپلیکیشن کا جائزہ لیں",
-      "noticeBlocked": "رائیڈر بلاک ہو گیا",
-      "noticeSaved": "تبدیلیاں محفوظ ہو گئیں",
-      "noticeActivated": "{{name}} ایکٹیویٹ ہو گیا",
-      "noticeActivateFailed": "رائیڈر کو ایکٹیویٹ کرنے میں ناکامی",
-      "noticeSaveFailed": "تبدیلیاں محفوظ کرنے میں ناکامی",
-      "noSelectedTitle": "کوئی رائیڈر منتخب نہیں",
-      "noSelectedHint": "ایپلیکیشن کا جائزہ لینے کے لیے ٹیبل سے کوئی رائیڈر منتخب کریں۔"
+    "empty": {
+      "live": "ابھی کوئی لائیو سواری نہیں",
+      "upcoming": "کوئی آنے والی سواری نہیں",
+      "completed": "ابھی تک کوئی مکمل سواری نہیں",
+      "canceled": "کوئی منسوخ شدہ سواری نہیں",
+      "mine": {
+        "live": "ابھی آپ کی کوئی لائیو رائیڈ نہیں",
+        "upcoming": "آپ کی کوئی آنے والی رائیڈ نہیں",
+        "completed": "ابھی تک آپ کی کوئی مکمل رائیڈ نہیں",
+        "canceled": "آپ کی کوئی منسوخ رائیڈ نہیں"
+      }
     },
-    "blocked": {
-      "caption": "بلاک شدہ رائیڈرز",
-      "loading": "بلاک شدہ رائیڈرز لوڈ ہو رہے ہیں…",
-      "emptyTitle": "کوئی بلاک شدہ رائیڈر نہیں",
-      "emptyHint": "اس وقت تمام رائیڈرز کو ایکسیس حاصل ہے۔",
-      "searchSr": "بلاک شدہ رائیڈرز تلاش کریں",
-      "searchPlaceholder": "نام، فون، شناختی کارڈ، یا ایریا سے تلاش کریں…",
-      "noMatchesTitle": "کوئی میچ نہیں",
-      "noMatchesHint": "\"{{q}}\" سے کوئی بلاک شدہ رائیڈر میچ نہیں ہوا۔",
-      "rowReviewAria": "بلاک شدہ رائیڈر {{name}} کا جائزہ لیں",
-      "noticeUnblocked": "رائیڈر ان بلاک ہو گیا",
-      "noSelectedTitle": "کوئی رائیڈر منتخب نہیں",
-      "noSelectedHint": "پروفائل دیکھنے کے لیے ٹیبل سے کوئی رائیڈر منتخب کریں۔",
-      "unblock": "رائیڈر کو ان بلاک کریں",
-      "unblockDialog": {
-        "title": "کیا {{name}} کو ان بلاک کریں؟",
-        "description": "یہ رائیڈر دوبارہ آپریٹ کر سکے گا۔",
-        "confirm": "رائیڈر کو ان بلاک کریں"
+    "errors": {
+      "loadFailed": "سواریاں لوڈ کرنے میں ناکامی"
+    },
+    "viewRidePage": {
+      "back": "سواریوں پر واپس جائیں",
+      "mapPlaceholder": "میپ جلد آ رہا ہے",
+      "mapAria": "سواری {{id}} کا میپ",
+      "notFoundTitle": "سواری نہیں ملی",
+      "notFoundHint": "اس ID سے کوئی سواری نہیں ملتی۔",
+      "stalled": "مقام پرانا ہے",
+      "tileError": "نقشے کی ٹائلز لوڈ نہیں ہو سکیں۔ اپنا کنکشن چیک کریں۔",
+      "geometryUnavailable": "راستہ دستیاب نہیں — سیدھی لکیر دکھائی جا رہی ہے",
+      "lastUpdate": "آخری اپڈیٹ",
+      "detailsTitle": "رائیڈ کی تفصیلات",
+      "completion": "تکمیل کا وقت",
+      "distanceTraveled": "طے شدہ فاصلہ",
+      "plannedDistance": "منصوبہ بند فاصلہ",
+      "waitingTime": "انتظار کا وقت",
+      "estCompletion": "متوقع تکمیل",
+      "minutesValue": "{{count}} منٹ",
+      "kmValue": "{{km}} کلومیٹر"
+    },
+    "markers": {
+      "pickup": "پک اپ",
+      "dropoff": "ڈراپ آف",
+      "rider": "رائیڈر کا مقام",
+      "updatedAgo": "{{value}} {{unit}} پہلے اپڈیٹ",
+      "units": {
+        "sec": "سیکنڈ",
+        "min": "منٹ"
+      },
+      "riderWithEta": "رائیڈر — {{minutes}} منٹ ({{km}} کلومیٹر)"
+    }
+  },
+  "users": {
+    "loading": "صارفین لوڈ ہو رہے ہیں…",
+    "retry": "دوبارہ کوشش کریں",
+    "search": "صارفین تلاش کریں",
+    "searchPlaceholder": "نام، فون یا ای میل تلاش کریں",
+    "filterByRole": "کردار کے حساب سے فلٹر کریں",
+    "tabs": {
+      "all": "تمام"
+    },
+    "roles": {
+      "Admin": "ایڈمن",
+      "Operator": "آپریٹر"
+    },
+    "columns": {
+      "name": "نام",
+      "phone": "فون",
+      "email": "ای میل",
+      "role": "کردار",
+      "joined": "شامل ہوا",
+      "actions": "ایکشنز"
+    },
+    "rowsPerPage": "فی صفحہ قطاریں",
+    "prevPage": "پچھلا صفحہ",
+    "nextPage": "اگلا صفحہ",
+    "page": "صفحہ {{cur}} از {{total}}",
+    "summary": "{{count}} میں سے {{from}}–{{to}} دکھائے جا رہے ہیں",
+    "summaryFiltered": "{{count}} میں سے {{from}}–{{to}} دکھائے جا رہے ہیں (کل {{total}} سے فلٹر کردہ)",
+    "rowOpenAria": "{{name}} کی ترمیم کھولیں",
+    "editUser": "ترمیم",
+    "editUserAria": "{{name}} میں ترمیم",
+    "exportCsv": "CSV ایکسپورٹ",
+    "exportCsvAria": "{{count}} قطاریں CSV کے طور پر ایکسپورٹ کریں",
+    "emptyTitle": "کوئی صارف آپ کے فلٹرز سے مماثل نہیں",
+    "emptyHint": "تلاش یا کردار ٹیب صاف کرنے کی کوشش کریں۔",
+    "clearFilters": "فلٹرز صاف کریں",
+    "caption": "ترتیب اور صفحہ بندی کے ساتھ صارفین کا جدول",
+    "errors": {
+      "loadFailed": "صارفین لوڈ نہیں ہو سکے۔"
+    },
+    "addNew": "نیا شامل کریں",
+    "addNewAria": "نیا صارف شامل کریں"
+  },
+  "errors": {
+    "boundary": {
+      "title": "کچھ غلط ہو گیا",
+      "message": "صفحہ لوڈ نہیں ہو سکا۔ دوبارہ لوڈ کریں یا ڈیش بورڈ پر واپس جائیں۔",
+      "reload": "ری لوڈ",
+      "goHome": "ڈیش بورڈ پر جائیں"
+    },
+    "notFound": {
+      "title": "صفحہ نہیں ملا",
+      "message": "آپ جو صفحہ ڈھونڈ رہے ہیں وہ موجود نہیں یا منتقل ہو چکا ہے۔",
+      "goHome": "ڈیش بورڈ پر جائیں"
+    }
+  },
+  "account": {
+    "profile": {
+      "title": "میرا پروفائل",
+      "tabs": {
+        "profile": "پروفائل",
+        "settings": "ترتیبات"
+      },
+      "fields": {
+        "name": "نام",
+        "phone": "فون",
+        "role": "کردار",
+        "address": "پتہ",
+        "activationStatus": "ایکٹیویشن اسٹیٹس"
+      },
+      "save": "تبدیلیاں محفوظ کریں",
+      "saving": "محفوظ ہو رہا ہے…",
+      "cancel": "منسوخ کریں",
+      "saved": "پروفائل محفوظ ہو گیا",
+      "saveFailed": "پروفائل محفوظ نہیں ہو سکا",
+      "discardTitle": "غیر محفوظ تبدیلیاں ضائع کریں؟",
+      "discardDesc": "آپ کی تبدیلیاں ضائع ہو جائیں گی۔",
+      "discardConfirm": "ضائع کریں"
+    },
+    "settings": {
+      "language": {
+        "title": "زبان"
+      },
+      "password": {
+        "title": "پاس ورڈ تبدیل کریں",
+        "current": "موجودہ پاس ورڈ",
+        "new": "نیا پاس ورڈ",
+        "confirm": "نیا پاس ورڈ کی تصدیق",
+        "submit": "پاس ورڈ تبدیل کریں",
+        "submitting": "تبدیل ہو رہا ہے…",
+        "changed": "پاس ورڈ تبدیل ہو گیا",
+        "mismatch": "نئے پاس ورڈز مماثل نہیں ہیں۔",
+        "minLength": "پاس ورڈ کم از کم 8 حروف کا ہونا چاہیے۔",
+        "currentRequired": "اپنا موجودہ پاس ورڈ درج کریں۔",
+        "changeFailed": "پاس ورڈ تبدیل نہیں ہو سکا۔",
+        "unavailable": "پاس ورڈ تبدیلی ابھی دستیاب نہیں ہے۔",
+        "hint": "کم از کم 8 حروف پر مشتمل مضبوط پاس ورڈ منتخب کریں۔"
       }
     }
   }
