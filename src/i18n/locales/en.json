@@ -3,6 +3,10 @@
     "signOut": "Sign out",
     "account": "Account",
     "accountMenu": "Account menu",
+    "themeToggle": {
+      "toDark": "Switch to dark mode",
+      "toLight": "Switch to light mode"
+    },
     "languageSwitcher": {
       "ariaLabel": "Change language"
     },

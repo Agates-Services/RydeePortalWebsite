@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Bg } from "@/components/shared";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AuthShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -11,7 +12,10 @@ export function AuthShell({ children }: { children: ReactNode }) {
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
     >
       <Bg />
-      <LanguageSwitcher className="absolute top-4 end-4 z-20" />
+      <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
+        <ThemeToggle />
+        <LanguageSwitcher />
+      </div>
       <div className="relative z-10 w-full max-w-[420px] flex flex-col items-center">
         {children}
         <p className="mt-8 text-xs text-center text-muted-foreground">{t("auth.shell.tagline")}</p>

@@ -4,6 +4,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/features/layout/AppSidebar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const TITLE_KEYS: Record<string, string> = {
   "/admin": "layout.title.dashboard",
@@ -45,7 +46,8 @@ export function DashboardLayout() {
           <SidebarTrigger />
           <Separator orientation="vertical" className="mx-1 h-5" />
           <h1 className="text-sm font-medium text-foreground">{title}</h1>
-          <LanguageSwitcher className="ms-auto" />
+          <ThemeToggle className="ms-auto" />
+          <LanguageSwitcher />
         </header>
         <div className="flex-1">
           <Outlet />

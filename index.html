@@ -9,6 +9,19 @@
       content="Offers a secure login portal for Karachi&#39;s electric bike ride-hailing service enabling users to book rides, register, and recover passwords easily."
     />
     <meta name="robots" content="noindex, nofollow" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("rydee.theme");
+          var dark =
+            stored === "dark" ||
+            (stored !== "light" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
     <style>
       html,
       body {

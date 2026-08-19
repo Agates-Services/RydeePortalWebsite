@@ -3,6 +3,10 @@
     "signOut": "سائن آؤٹ",
     "account": "اکاؤنٹ",
     "accountMenu": "اکاؤنٹ مینو",
+    "themeToggle": {
+      "toDark": "ڈارک موڈ پر سوئچ کریں",
+      "toLight": "لائٹ موڈ پر سوئچ کریں"
+    },
     "languageSwitcher": {
       "ariaLabel": "زبان تبدیل کریں"
     },
