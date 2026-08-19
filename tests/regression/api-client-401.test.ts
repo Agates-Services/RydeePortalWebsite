@@ -12,7 +12,7 @@ function installFetch(response: Response) {
 function seedSession() {
   window.localStorage.setItem(
     SESSION_STORAGE_KEY,
-    JSON.stringify({ v: 1, profile: { role: "Admin", name: "Seed" }, savedAt: Date.now() }),
+    JSON.stringify({ v: 2, userId: null, profile: { role: "Admin", name: "Seed" }, savedAt: Date.now() }),
   );
 }
 

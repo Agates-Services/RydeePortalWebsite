@@ -498,7 +498,8 @@
     "active": {
       "total": "Total:",
       "live": "Live",
-      "loading": "Loading live map…"
+      "loading": "Loading live map…",
+      "reporting": "{{located}} of {{total}} reporting location"
     }
   },
   "rides": {

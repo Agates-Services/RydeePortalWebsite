@@ -13,7 +13,8 @@ function seedAdmin() {
   window.localStorage.setItem(
     SESSION_STORAGE_KEY,
     JSON.stringify({
-      v: 1,
+      v: 2,
+      userId: "USER#0300222222",
       profile: { role: "Admin", name: "Admin One", phone: "0300222222", address: "Old address" },
       savedAt: Date.now(),
     }),
@@ -24,7 +25,8 @@ function seedRider() {
   window.localStorage.setItem(
     SESSION_STORAGE_KEY,
     JSON.stringify({
-      v: 1,
+      v: 2,
+      userId: "USER#0300111111",
       profile: {
         role: "Rider",
         name: "Rider One",
@@ -91,10 +93,11 @@ describe("ProfilePage — profile tab", () => {
     });
     expect(receivedBody).toMatchObject({
       phone: "0300222222",
-      role: "Admin",
-      name: "Admin Renamed",
+      userId: "USER#0300222222",
+      profile: { name: "Admin Renamed" },
     });
-    expect(Object.keys(receivedBody!)).not.toContain("address");
+    expect(Object.keys(receivedBody!)).not.toContain("role");
+    expect(Object.keys((receivedBody as { profile: object }).profile)).not.toContain("address");
   });
 
   it("opens the discard-confirm dialog when Cancel is clicked with edits", async () => {

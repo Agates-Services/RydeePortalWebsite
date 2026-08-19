@@ -3,7 +3,8 @@ import type { Profile } from "@/types/profile";
 
 export interface AuthContextValue {
   profile: Profile | null;
-  login: (profile: Profile) => void;
+  userId: string | null;
+  login: (profile: Profile, userId?: string | null) => void;
   logout: () => void;
 }
 

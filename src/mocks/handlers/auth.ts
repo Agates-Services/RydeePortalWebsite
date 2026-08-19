@@ -154,7 +154,7 @@ export const authHandlers = [
       rating,
       lastCustomerID,
     };
-    return HttpResponse.json({ userId: `USER#${phone}`, profile });
+    return HttpResponse.json({ user_id: `USER#${phone}`, role, profile });
   }),
 
   http.post(API_REGISTER_URL, async ({ request }) => {
@@ -172,6 +172,7 @@ export const authHandlers = [
       );
     }
     return HttpResponse.json({
+      user_id: `USER#${body.phone}`,
       message: "User profile created successfully",
       userId: `USER#${body.phone}`,
     });

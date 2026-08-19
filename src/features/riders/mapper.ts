@@ -39,8 +39,10 @@ export function toAllRidersRow(raw: Record<string, unknown>, idx: number): AllRi
   const documents = Array.isArray(raw.documents)
     ? (raw.documents as unknown[]).filter((d): d is string => typeof d === "string")
     : undefined;
+  const userId = typeof raw.userId === "string" && raw.userId !== "" ? raw.userId : undefined;
   return {
     id,
+    ...(userId !== undefined ? { userId } : {}),
     name: str(raw, "name"),
     phone: str(raw, "phone"),
     cnic: str(raw, "cnic"),

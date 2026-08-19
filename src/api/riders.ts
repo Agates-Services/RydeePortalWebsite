@@ -10,6 +10,7 @@ interface RidersResponse {
 }
 
 interface WireRider {
+  userId?: unknown;
   role?: unknown;
   profile?: unknown;
   [key: string]: unknown;
@@ -21,10 +22,16 @@ function flattenRider(r: WireRider): Record<string, unknown> {
     return r as Record<string, unknown>;
   }
   const flat: Record<string, unknown> = { ...(profile as Record<string, unknown>) };
+  if (typeof r.userId !== "undefined" && !("userId" in flat)) flat.userId = r.userId;
   if (typeof r.role !== "undefined" && !("role" in flat)) flat.role = r.role;
   // Map new dateOfJoining onto the joinedAt field the mapper/UI already consume.
   if (typeof flat.joinedAt === "undefined" && typeof flat.dateOfJoining === "string") {
     flat.joinedAt = String(flat.dateOfJoining);
+  }
+  // Backend emits UPPERCASE activationStatus (PENDING/ACTIVE); the app works in
+  // lowercase everywhere, so normalise once at the boundary.
+  if (typeof flat.activationStatus === "string") {
+    flat.activationStatus = flat.activationStatus.toLowerCase();
   }
   return flat;
 }
@@ -59,10 +66,10 @@ export interface UpdateUserResponse {
 
 export function updateUser(
   phone: string,
-  role: string,
-  fields: Record<string, unknown>,
+  userId: string | null,
+  patch: Record<string, unknown>,
 ): Promise<UpdateUserResponse> {
-  return post<UpdateUserResponse>(API_UPDATE_USER_URL, { phone, role, ...fields });
+  return post<UpdateUserResponse>(API_UPDATE_USER_URL, { phone, userId, profile: patch });
 }
 
 export interface ResetRiderPinResponse {
@@ -75,4 +82,3 @@ export interface ResetRiderPinResponse {
 export function resetRiderPin(phone: string, role: string): Promise<ResetRiderPinResponse> {
   return post<ResetRiderPinResponse>(API_RESET_RIDER_PIN_URL, { phone, role });
 }
-

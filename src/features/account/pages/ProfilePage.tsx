@@ -57,7 +57,7 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 
 export default function ProfilePage() {
   const { t } = useTranslation();
-  const { profile, login } = useAuth();
+  const { profile, userId, login } = useAuth();
   const [tab, setTab] = useState<TabKey>("profile");
 
   const initialName = profile?.name ?? "";
@@ -118,7 +118,7 @@ export default function ProfilePage() {
       return;
     }
     try {
-      await updateUser(phone, role, patch);
+      await updateUser(phone, userId, patch);
       const merged: Profile = { ...profile, ...patch };
       login(merged);
       initialRef.current = { name, address };

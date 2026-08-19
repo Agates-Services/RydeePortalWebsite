@@ -21,6 +21,7 @@ export type RiderStatus = "active" | "pending" | "blocked" | "offboarded";
 
 export interface AllRidersRow {
   id: number;
+  userId?: string;
   name: string;
   phone: string;
   cnic: string;

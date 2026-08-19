@@ -71,22 +71,17 @@ export default function LoginPage() {
       // The API wrapper throws an ApiError on non-ok responses whose message
       // is the server response text verbatim, matching the pre-wrapper fallback
       // ladder so the visible error copy remains identical.
-      const data = (await apiLogin(phone, password)) as {
-        role?: string;
-        user?: { role?: string };
-        profile?: Profile;
-      };
-      const topLevelRole: string = data.role ?? data.user?.role ?? "";
-      const profile = data.profile as Profile | undefined;
+      const data = await apiLogin(phone, password);
+      const profile = data.profile;
 
       if (!profile) {
         throw new Error(t("auth.login.errors.missingProfile"));
       }
 
       // Normalise the role at the response boundary so downstream code can trust a single field.
-      const canonicalRole = profile.role || topLevelRole;
+      const canonicalRole = profile.role || data.role;
       const normalizedProfile: Profile = { ...profile, role: canonicalRole };
-      auth.login(normalizedProfile);
+      auth.login(normalizedProfile, data.userId);
 
       const fromState = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
       const dest = fromState && fromState !== "/login" ? fromState : roleHome(canonicalRole);

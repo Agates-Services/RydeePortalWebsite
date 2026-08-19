@@ -31,7 +31,7 @@ describe("session expiry notice", () => {
     const staleAt = Date.now() - SESSION_MAX_AGE_MS - 1000;
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
-      JSON.stringify({ v: 1, profile: { role: "Admin", name: "X" }, savedAt: staleAt }),
+      JSON.stringify({ v: 2, userId: null, profile: { role: "Admin", name: "X" }, savedAt: staleAt }),
     );
     expect(loadSession()).toBeNull();
     expect(window.sessionStorage.getItem("rydee.expired")).toBe("1");

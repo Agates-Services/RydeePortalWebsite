@@ -4,7 +4,8 @@ import type { Profile } from "@/types/profile";
 export const API_LOGIN_URL = joinUrl("/user-login");
 export const API_REGISTER_URL = joinUrl("/register-user");
 
-interface LoginResponse {
+export interface LoginResult {
+  userId: string | null;
   role: string;
   profile: Profile;
 }
@@ -23,18 +24,22 @@ function titleCase(role: string): string {
   return role.length === 0 ? role : role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
 }
 
-export async function login(phone: string, password: string): Promise<LoginResponse> {
-  const raw = await post<{ role?: string; profile?: Partial<Profile> & { role?: string } }>(
-    API_LOGIN_URL,
-    { phone, password },
-  );
+export async function login(phone: string, password: string): Promise<LoginResult> {
+  const raw = await post<{
+    user_id?: unknown;
+    userId?: unknown;
+    role?: string;
+    profile?: Partial<Profile> & { role?: string };
+  }>(API_LOGIN_URL, { phone, password });
   const rawProfileRole = raw.profile?.role;
   const topRole = raw.role ?? "";
   const canonical = titleCase(
     typeof rawProfileRole === "string" && rawProfileRole !== "" ? rawProfileRole : topRole,
   );
   const profile = { ...(raw.profile ?? {}), role: canonical } as Profile;
-  return { role: canonical, profile };
+  const rawId = raw.user_id ?? raw.userId;
+  const userId = typeof rawId === "string" ? rawId : null;
+  return { userId, role: canonical, profile };
 }
 
 export function registerUser(payload: RegisterPayload): Promise<unknown> {

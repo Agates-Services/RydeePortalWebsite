@@ -82,7 +82,7 @@ describe("H1 — POST /register/user body shape", () => {
 });
 
 describe("H6 — MSW default handlers match ADR-0003 contract", () => {
-  it("login success shape: { userId, profile } with profile.role string", async () => {
+  it("login success shape: { user_id, role, profile } per API-Document-V1", async () => {
     const res = await fetch(API_LOGIN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,10 +91,11 @@ describe("H6 — MSW default handlers match ADR-0003 contract", () => {
     });
     const data = (await res.json()) as unknown;
     expect(data).toMatchObject({
-      userId: expect.any(String),
+      user_id: expect.any(String),
+      role: expect.any(String),
       profile: expect.objectContaining({ role: expect.any(String) }),
     });
-    const { profile } = data as { profile: { role: string } };
+    const { profile } = data as { profile: { role: string; dateOfJoining?: unknown } };
     expect(typeof profile.role).toBe("string");
   });
 
@@ -119,5 +120,82 @@ describe("H6 — MSW default handlers match ADR-0003 contract", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { message: string };
     expect(body.message).toMatch(/missing required fields/i);
+  });
+});
+
+describe("H1/H6 — API-Document-V1 contract (riders domain)", () => {
+  it("get-all-riders returns { success:true, riders:[{ userId, profile }] } with UPPERCASE activationStatus", async () => {
+    const { API_GET_ALL_RIDERS_URL } = await import("@/api/riders");
+    const res = await fetch(API_GET_ALL_RIDERS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+    const data = (await res.json()) as {
+      success: boolean;
+      riders: Array<{ userId: string; profile: Record<string, unknown> }>;
+    };
+    expect(data.success).toBe(true);
+    expect(Array.isArray(data.riders)).toBe(true);
+    const first = data.riders[0];
+    expect(typeof first.userId).toBe("string");
+    expect(first.profile).toBeTypeOf("object");
+    expect(first.profile.activationStatus).toBe(String(first.profile.activationStatus).toUpperCase());
+    expect(first.profile.documents).toBeTypeOf("object");
+  });
+
+  it("api-client flattens rider rows and lowercases activationStatus", async () => {
+    const { getAllRiders } = await import("@/api/riders");
+    const { riders } = await getAllRiders();
+    expect(riders && riders.length).toBeGreaterThan(0);
+    const row = riders![0];
+    expect(typeof row.userId).toBe("string");
+    expect(typeof row.name).toBe("string");
+    expect(String(row.activationStatus)).toBe(String(row.activationStatus).toLowerCase());
+  });
+
+  it("update-user body is { phone, userId, profile:{...patch} }", async () => {
+    const { updateUser } = await import("@/api/riders");
+    const { API_UPDATE_USER_URL } = await import("@/api/riders");
+    let seen: unknown;
+    server.use(
+      http.post(API_UPDATE_USER_URL, async ({ request }) => {
+        seen = await request.json();
+        return HttpResponse.json({ message: "ok", updatedFields: {} });
+      }),
+    );
+    await updateUser("0312-4561234", "rider-201", { area: "Clifton", documents: { cnic: "x" } });
+    expect(seen).toEqual({
+      phone: "0312-4561234",
+      userId: "rider-201",
+      profile: { area: "Clifton", documents: { cnic: "x" } },
+    });
+    expect(Object.keys(seen as object).sort()).toEqual(["phone", "profile", "userId"]);
+  });
+
+  it("update-user default handler responds { message, updatedFields:{ profile } }", async () => {
+    const { updateUser } = await import("@/api/riders");
+    const res = await updateUser("0312-4561234", "rider-201", { area: "DHA" });
+    expect(res.message).toMatch(/patched/i);
+    expect(res.updatedFields).toMatchObject({ profile: { area: "DHA" } });
+  });
+
+  it("activate-rider request { phone, pin } → { user_id, success, message, updatedFields }", async () => {
+    const { activateRider } = await import("@/api/riders");
+    const res = await activateRider("0312-4561234", "123456");
+    expect(res.success).toBe(true);
+    expect(typeof res.message).toBe("string");
+    expect(res.updatedFields).toMatchObject({ activation_status: "active" });
+  });
+
+  it("activate-rider error case → { success:false, error }", async () => {
+    const { activateRider } = await import("@/api/riders");
+    let caught: unknown;
+    try {
+      await activateRider("0000000000", "123456");
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeTruthy();
   });
 });

@@ -490,7 +490,7 @@ export default function RiderEditPage() {
     setStatusError(null);
     setStatusSaved(null);
     try {
-      await updateUser(row.phone, "Rider", { activationStatus: next });
+      await updateUser(row.phone, row.userId ?? null, { activationStatus: next });
       setStatus(next);
       const savedKind = next === "active" ? "active" : next;
       setStatusSaved(savedKind);
@@ -591,7 +591,7 @@ export default function RiderEditPage() {
     if (Object.keys(diff).length === 0) return;
     setSaving(true); setSaveError(null); setSaved(false);
     try {
-      await updateUser(row.phone, editedRole, diff);
+      await updateUser(row.phone, row.userId ?? null, diff);
       const nextInitial: FormState = { ...form, name: form.name.trim(), cnic: normalizeCnicInput(form.cnic) };
       initialFormRef.current = nextInitial;
       setForm(nextInitial);

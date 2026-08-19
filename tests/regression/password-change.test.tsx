@@ -10,7 +10,8 @@ function seedAdmin() {
   window.localStorage.setItem(
     SESSION_STORAGE_KEY,
     JSON.stringify({
-      v: 1,
+      v: 2,
+      userId: "USER#0300222222",
       profile: { role: "Admin", name: "Admin One", phone: "0300222222", address: "A" },
       savedAt: Date.now(),
     }),

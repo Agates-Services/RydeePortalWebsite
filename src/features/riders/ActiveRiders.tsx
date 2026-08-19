@@ -19,8 +19,7 @@ function toCoords(r: Record<string, unknown>): { lat: number; lon: number } | nu
   return { lat, lon };
 }
 
-function mapToActive(r: Record<string, unknown>, idx: number): ActiveRider | null {
-  if (toStatus(r) !== "active") return null;
+function toLocatable(r: Record<string, unknown>, idx: number): ActiveRider | null {
   const coords = toCoords(r);
   if (!coords) return null;
   const id = typeof r.id === "number" ? r.id : idx + 1;
@@ -31,6 +30,7 @@ function mapToActive(r: Record<string, unknown>, idx: number): ActiveRider | nul
 
 export default function ActiveRiders() {
   const { t } = useTranslation();
+  const [activeCount, setActiveCount] = useState(0);
   const [riders, setRiders] = useState<ActiveRider[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,14 +40,17 @@ export default function ActiveRiders() {
       .then((data) => {
         if (cancelled) return;
         const rows = data.riders ?? [];
-        const mapped = rows
-          .map((r, i) => mapToActive(r, i))
+        const active = rows.filter((r) => toStatus(r) === "active");
+        const locatable = active
+          .map((r, i) => toLocatable(r, i))
           .filter((r): r is ActiveRider => r !== null);
-        setRiders(mapped);
+        setActiveCount(active.length);
+        setRiders(locatable);
         setLoading(false);
       })
       .catch(() => {
         if (cancelled) return;
+        setActiveCount(0);
         setRiders([]);
         setLoading(false);
       });
@@ -60,8 +63,13 @@ export default function ActiveRiders() {
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
       <div className="flex flex-wrap items-center gap-3">
         <Badge className="bg-card border-border text-muted-foreground gap-2 px-4 py-2 text-sm font-medium rounded-full">
-          {t("riders.active.total")} <strong className="text-foreground">{riders.length}</strong>
+          {t("riders.active.total")} <strong className="text-foreground">{activeCount}</strong>
         </Badge>
+        {!loading && riders.length < activeCount ? (
+          <span className="text-xs text-muted-foreground" aria-live="polite">
+            {t("riders.active.reporting", { located: riders.length, total: activeCount })}
+          </span>
+        ) : null}
         <Badge
           className="ms-auto bg-[color:var(--success-muted)] text-[color:var(--success)] border-[color:var(--success)]/25 gap-2 px-3 py-1.5 text-xs font-semibold rounded-full"
           aria-live="polite"

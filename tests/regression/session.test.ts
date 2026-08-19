@@ -15,18 +15,29 @@ beforeEach(() => {
   vi.useRealTimers();
 });
 
-describe("D9 — session envelope roundtrip", () => {
-  it("saveSession then loadSession returns the profile (v1 roundtrip)", () => {
-    saveSession(rider);
-    expect(loadSession()).toEqual(rider);
+describe("D9 — session envelope roundtrip (v2)", () => {
+  it("saveSession then loadSession returns { userId, profile }", () => {
+    saveSession(rider, "USER#0300111111");
+    expect(loadSession()).toEqual({ userId: "USER#0300111111", profile: rider });
   });
 
-  it("stores a v1 envelope shape (never a raw Profile)", () => {
+  it("saveSession without userId defaults userId to null", () => {
     saveSession(rider);
+    expect(loadSession()).toEqual({ userId: null, profile: rider });
+  });
+
+  it("stores a v2 envelope shape (never a raw Profile)", () => {
+    saveSession(rider, "USER#0300111111");
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
     expect(raw).toBeTruthy();
-    const parsed = JSON.parse(raw!) as { v: number; profile: Profile; savedAt: number };
-    expect(parsed.v).toBe(1);
+    const parsed = JSON.parse(raw!) as {
+      v: number;
+      userId: string | null;
+      profile: Profile;
+      savedAt: number;
+    };
+    expect(parsed.v).toBe(2);
+    expect(parsed.userId).toBe("USER#0300111111");
     expect(parsed.profile).toEqual(rider);
     expect(typeof parsed.savedAt).toBe("number");
   });
@@ -40,20 +51,20 @@ describe("D9 — session envelope roundtrip", () => {
 });
 
 describe("D9 — rejection paths (all must clear storage AND return null)", () => {
-  it("TTL just BEFORE the boundary is honored (returns profile)", () => {
-    const nowStore = Date.now() - (SESSION_MAX_AGE_MS - 1000); // 1s inside window
+  it("TTL just BEFORE the boundary is honored (returns session)", () => {
+    const nowStore = Date.now() - (SESSION_MAX_AGE_MS - 1000);
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
-      JSON.stringify({ v: 1, profile: rider, savedAt: nowStore }),
+      JSON.stringify({ v: 2, userId: "USER#1", profile: rider, savedAt: nowStore }),
     );
-    expect(loadSession()).toEqual(rider);
+    expect(loadSession()).toEqual({ userId: "USER#1", profile: rider });
   });
 
   it("TTL past the boundary → null + storage cleared", () => {
-    const nowStore = Date.now() - (SESSION_MAX_AGE_MS + 1000); // 1s past window
+    const nowStore = Date.now() - (SESSION_MAX_AGE_MS + 1000);
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
-      JSON.stringify({ v: 1, profile: rider, savedAt: nowStore }),
+      JSON.stringify({ v: 2, userId: null, profile: rider, savedAt: nowStore }),
     );
     expect(loadSession()).toBeNull();
     expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
@@ -65,10 +76,28 @@ describe("D9 — rejection paths (all must clear storage AND return null)", () =
     expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
   });
 
-  it("wrong envelope version → null + storage cleared (forward-compat drop)", () => {
+  it("v1 envelope is treated as expired → null + storage cleared (forced re-login)", () => {
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
-      JSON.stringify({ v: 2, profile: rider, savedAt: Date.now(), accessToken: "abc" }),
+      JSON.stringify({ v: 1, profile: rider, savedAt: Date.now() }),
+    );
+    expect(loadSession()).toBeNull();
+    expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it("unknown future version → null + storage cleared", () => {
+    window.localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ v: 3, userId: "x", profile: rider, savedAt: Date.now() }),
+    );
+    expect(loadSession()).toBeNull();
+    expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it("non-string userId (and not null) → null + storage cleared", () => {
+    window.localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ v: 2, userId: 42, profile: rider, savedAt: Date.now() }),
     );
     expect(loadSession()).toBeNull();
     expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
@@ -77,14 +106,14 @@ describe("D9 — rejection paths (all must clear storage AND return null)", () =
   it("missing/non-string profile.role → null + storage cleared", () => {
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
-      JSON.stringify({ v: 1, profile: { name: "no-role" }, savedAt: Date.now() }),
+      JSON.stringify({ v: 2, userId: null, profile: { name: "no-role" }, savedAt: Date.now() }),
     );
     expect(loadSession()).toBeNull();
     expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
 
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
-      JSON.stringify({ v: 1, profile: { role: 42 }, savedAt: Date.now() }),
+      JSON.stringify({ v: 2, userId: null, profile: { role: 42 }, savedAt: Date.now() }),
     );
     expect(loadSession()).toBeNull();
     expect(window.localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
