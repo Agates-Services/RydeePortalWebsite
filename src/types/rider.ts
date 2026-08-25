@@ -29,7 +29,9 @@ export interface AllRidersRow {
   area: string;
   joinedAt: string; // ISO YYYY-MM-DD
   // Optional detail fields shown in the row-detail drawer; the drawer renders a dash when the wire omits them.
+  address?: string;
   dob?: string;
   documents?: string[];
   pin?: string;
+  rawProfile?: Record<string, unknown>;
 }

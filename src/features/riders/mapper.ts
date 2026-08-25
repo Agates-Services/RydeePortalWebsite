@@ -35,11 +35,16 @@ export function toAllRidersRow(raw: Record<string, unknown>, idx: number): AllRi
         ? raw.rideArea
         : "";
   const dob = typeof raw.dob === "string" && raw.dob !== "" ? raw.dob : undefined;
+  const address = typeof raw.address === "string" && raw.address !== "" ? raw.address : undefined;
   const pin = typeof raw.pin === "string" && raw.pin !== "" ? raw.pin : undefined;
   const documents = Array.isArray(raw.documents)
     ? (raw.documents as unknown[]).filter((d): d is string => typeof d === "string")
     : undefined;
   const userId = typeof raw.userId === "string" && raw.userId !== "" ? raw.userId : undefined;
+  const rawProfile =
+    raw.rawProfile && typeof raw.rawProfile === "object"
+      ? (raw.rawProfile as Record<string, unknown>)
+      : undefined;
   return {
     id,
     ...(userId !== undefined ? { userId } : {}),
@@ -49,9 +54,11 @@ export function toAllRidersRow(raw: Record<string, unknown>, idx: number): AllRi
     status: resolveStatus(raw),
     area,
     joinedAt: str(raw, "joinedAt"),
+    ...(address !== undefined ? { address } : {}),
     ...(dob !== undefined ? { dob } : {}),
     ...(pin !== undefined ? { pin } : {}),
     ...(documents && documents.length > 0 ? { documents } : {}),
+    ...(rawProfile !== undefined ? { rawProfile } : {}),
   };
 }
 

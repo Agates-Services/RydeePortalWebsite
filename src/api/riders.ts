@@ -22,6 +22,7 @@ function flattenRider(r: WireRider): Record<string, unknown> {
     return r as Record<string, unknown>;
   }
   const flat: Record<string, unknown> = { ...(profile as Record<string, unknown>) };
+  flat.rawProfile = profile;
   if (typeof r.userId !== "undefined" && !("userId" in flat)) flat.userId = r.userId;
   if (typeof r.role !== "undefined" && !("role" in flat)) flat.role = r.role;
   // Map new dateOfJoining onto the joinedAt field the mapper/UI already consume.

@@ -160,7 +160,7 @@ export default function RiderEditPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const seededInitial: FormState = seededRow
-    ? { name: seededRow.name ?? "", area: seededRow.area ?? "", address: "", cnic: seededRow.cnic ?? "", dob: seededRow.dob ?? "" }
+    ? { name: seededRow.name ?? "", area: seededRow.area ?? "", address: seededRow.address ?? "", cnic: seededRow.cnic ?? "", dob: seededRow.dob ?? "" }
     : { name: "", area: "", address: "", cnic: "", dob: "" };
 
   const [form, setForm] = useState<FormState>(seededInitial);
@@ -248,7 +248,7 @@ export default function RiderEditPage() {
         }
         setRow(match);
         if (match) {
-          const initial: FormState = { name: match.name ?? "", area: match.area ?? "", address: "", cnic: match.cnic ?? "", dob: match.dob ?? "" };
+          const initial: FormState = { name: match.name ?? "", area: match.area ?? "", address: match.address ?? "", cnic: match.cnic ?? "", dob: match.dob ?? "" };
           setForm(initial);
           initialFormRef.current = initial;
           if (isRider) setStatus(match.status);
@@ -490,7 +490,7 @@ export default function RiderEditPage() {
     setStatusError(null);
     setStatusSaved(null);
     try {
-      await updateUser(row.phone, row.userId ?? null, { activationStatus: next });
+      await updateUser(row.phone, row.userId ?? null, buildFullProfile(next));
       setStatus(next);
       const savedKind = next === "active" ? "active" : next;
       setStatusSaved(savedKind);
@@ -572,6 +572,20 @@ export default function RiderEditPage() {
     }
   };
 
+  const buildFullProfile = (overrideStatus?: RiderStatus): Record<string, unknown> => {
+    const base = row?.rawProfile ?? {};
+    const full: Record<string, unknown> = {
+      ...base,
+      name: form.name.trim(),
+      area: form.area,
+      address: form.address,
+      cnic: normalizeCnicInput(form.cnic),
+      dob: form.dob,
+    };
+    if (isRider && overrideStatus) full.activationStatus = overrideStatus.toUpperCase();
+    return full;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setTouched({ name: true, area: true, address: true, cnic: true, dob: true });
@@ -581,17 +595,9 @@ export default function RiderEditPage() {
       return;
     }
     if (!canSave || !row) return;
-    const init = initialFormRef.current;
-    const diff: Record<string, unknown> = {};
-    if (form.name.trim() !== init.name.trim()) diff.name = form.name.trim();
-    if (form.area !== init.area) diff.area = form.area;
-    if (form.address !== init.address) diff.address = form.address;
-    if (normalizeCnicInput(form.cnic) !== normalizeCnicInput(init.cnic)) diff.cnic = normalizeCnicInput(form.cnic);
-    if (form.dob !== init.dob) diff.dob = form.dob;
-    if (Object.keys(diff).length === 0) return;
     setSaving(true); setSaveError(null); setSaved(false);
     try {
-      await updateUser(row.phone, row.userId ?? null, diff);
+      await updateUser(row.phone, row.userId ?? null, buildFullProfile());
       const nextInitial: FormState = { ...form, name: form.name.trim(), cnic: normalizeCnicInput(form.cnic) };
       initialFormRef.current = nextInitial;
       setForm(nextInitial);

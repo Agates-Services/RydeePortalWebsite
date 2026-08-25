@@ -110,16 +110,15 @@ export default function ProfilePage() {
     setSaving(true);
     setSaveError(null);
     setSaved(false);
-    const patch: Record<string, string> = {};
-    if (name !== initialRef.current.name) patch.name = name;
-    if (address !== initialRef.current.address) patch.address = address;
-    if (Object.keys(patch).length === 0) {
+    if (name === initialRef.current.name && address === initialRef.current.address) {
       setSaving(false);
       return;
     }
+    const merged: Profile = { ...profile, name, address };
+    const fullProfile: Record<string, unknown> = { ...merged, role: merged.role.toLowerCase() };
+    delete fullProfile.phone;
     try {
-      await updateUser(phone, userId, patch);
-      const merged: Profile = { ...profile, ...patch };
+      await updateUser(phone, userId, fullProfile);
       login(merged);
       initialRef.current = { name, address };
       setSaved(true);

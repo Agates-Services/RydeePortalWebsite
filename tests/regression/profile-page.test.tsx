@@ -73,7 +73,7 @@ describe("ProfilePage — profile tab", () => {
     expect(await screen.findByTestId("fqa-account-activation")).toBeInTheDocument();
   });
 
-  it("saves only the fields that changed (diff-only patch)", async () => {
+  it("sends the full profile on save (replacement-safe), role lowercased, phone excluded", async () => {
     seedAdmin();
     let receivedBody: Record<string, unknown> | null = null;
     server.use(
@@ -94,10 +94,11 @@ describe("ProfilePage — profile tab", () => {
     expect(receivedBody).toMatchObject({
       phone: "0300222222",
       userId: "USER#0300222222",
-      profile: { name: "Admin Renamed" },
+      profile: { name: "Admin Renamed", address: "Old address", role: "admin" },
     });
-    expect(Object.keys(receivedBody!)).not.toContain("role");
-    expect(Object.keys((receivedBody as { profile: object }).profile)).not.toContain("address");
+    const profile = (receivedBody as { profile: Record<string, unknown> }).profile;
+    expect(Object.keys(profile)).not.toContain("phone");
+    expect(profile.role).toBe("admin");
   });
 
   it("opens the discard-confirm dialog when Cancel is clicked with edits", async () => {
