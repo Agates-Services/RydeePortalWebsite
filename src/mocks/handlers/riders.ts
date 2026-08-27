@@ -23,7 +23,6 @@ interface RiderProfile {
   rideState: string;
   dateOfJoining: string | null;
   dob: string | null;
-  cnic: string | null;
   rideCount: number;
   totalRides: number;
   totalDistance: number;
@@ -43,8 +42,8 @@ interface RiderRecord {
   profile: RiderProfile;
 }
 
-function emptyDocuments(): RiderDocuments {
-  return { cnic: null, license: null, vehicleRegistration: null, profilePicture: null, utilityBill: null };
+function documentsWithCnic(cnic: string): RiderDocuments {
+  return { cnic, license: null, vehicleRegistration: null, profilePicture: null, utilityBill: null };
 }
 
 function seed(
@@ -68,7 +67,6 @@ function seed(
       rideState: "IDLE",
       dateOfJoining: joined,
       dob: null,
-      cnic,
       rideCount: 0,
       totalRides: 0,
       totalDistance: 0,
@@ -78,7 +76,7 @@ function seed(
       currentLocation,
       lastCustomerID: null,
       activationStatus,
-      documents: emptyDocuments(),
+      documents: documentsWithCnic(cnic),
       id,
     },
   };

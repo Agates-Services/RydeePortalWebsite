@@ -574,14 +574,19 @@ export default function RiderEditPage() {
 
   const buildFullProfile = (overrideStatus?: RiderStatus): Record<string, unknown> => {
     const base = row?.rawProfile ?? {};
+    const baseDocuments =
+      base.documents && typeof base.documents === "object"
+        ? (base.documents as Record<string, unknown>)
+        : {};
     const full: Record<string, unknown> = {
       ...base,
       name: form.name.trim(),
       area: form.area,
       address: form.address,
-      cnic: normalizeCnicInput(form.cnic),
+      documents: { ...baseDocuments, cnic: normalizeCnicInput(form.cnic) },
       dob: form.dob,
     };
+    delete full.cnic;
     if (isRider && overrideStatus) full.activationStatus = overrideStatus.toUpperCase();
     return full;
   };

@@ -141,6 +141,60 @@ describe("Rider full-profile save (read + write path regression)", () => {
     expect(profile.documents).toBeTypeOf("object");
     expect(profile.name).toBe("Ghulam Ali");
     expect(profile.dob).toBe("1995-04-12");
+    expect(profile.cnic).toBeUndefined();
+    expect(profile.documents).toMatchObject({
+      cnic: "4210112345671",
+      license: null,
+      vehicleRegistration: null,
+      profilePicture: null,
+      utilityBill: null,
+    });
+  });
+
+  it("nests an edited cnic under documents and preserves sibling document fields", async () => {
+    const withLicense = {
+      ...WIRE_RIDER,
+      profile: {
+        ...WIRE_RIDER.profile,
+        documents: {
+          cnic: null,
+          license: "license-url",
+          vehicleRegistration: "vr-url",
+          profilePicture: null,
+          utilityBill: null,
+        },
+      },
+    };
+    server.use(
+      http.post(API_GET_ALL_RIDERS_URL, () =>
+        HttpResponse.json({ success: true, riders: [withLicense] }),
+      ),
+      http.post(API_GET_RIDER_DOCUMENTS_URL, () => HttpResponse.json({ documents: [] })),
+    );
+    let seen: { profile?: Record<string, unknown> } | null = null;
+    server.use(
+      http.post(API_UPDATE_USER_URL, async ({ request }) => {
+        seen = (await request.json()) as typeof seen;
+        return HttpResponse.json({ message: "patched", updatedFields: {} });
+      }),
+    );
+    mountFetch("3323720454");
+    const user = userEvent.setup();
+    const cnicInput = await screen.findByLabelText(/cnic/i);
+    await user.clear(cnicInput);
+    await user.type(cnicInput, "4210199999999");
+    await user.click(screen.getByTestId("fqa-edit-save"));
+
+    await waitFor(() => expect(seen).not.toBeNull());
+    const profile = seen!.profile!;
+    expect(profile.cnic).toBeUndefined();
+    expect(profile.documents).toMatchObject({
+      cnic: "4210199999999",
+      license: "license-url",
+      vehicleRegistration: "vr-url",
+      profilePicture: null,
+      utilityBill: null,
+    });
   });
 
   it("Block status change sends the full wire profile with activationStatus=BLOCKED", async () => {

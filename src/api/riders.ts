@@ -34,6 +34,16 @@ function flattenRider(r: WireRider): Record<string, unknown> {
   if (typeof flat.activationStatus === "string") {
     flat.activationStatus = flat.activationStatus.toLowerCase();
   }
+  // Backend moved cnic under profile.documents.cnic; lift it to the flat cnic
+  // field the mapper/UI consume, keeping any legacy top-level cnic as fallback.
+  const docs = flat.documents;
+  if (
+    docs &&
+    typeof docs === "object" &&
+    typeof (docs as Record<string, unknown>).cnic === "string"
+  ) {
+    flat.cnic = (docs as Record<string, unknown>).cnic;
+  }
   return flat;
 }
 
