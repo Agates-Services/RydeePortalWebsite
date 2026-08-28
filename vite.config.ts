@@ -16,10 +16,18 @@ const PROXY_PREFIXES = [
   "/change-password",
 ] as const;
 
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
   const proxyTarget =
     command === "serve"
       ? loadEnv("development", process.cwd(), "").VITE_DEV_PROXY_TARGET
+      : undefined;
+
+  // QA/demo builds (`vite build --mode qa`) bundle and boot MSW without any
+  // committed env file: statically define the flag so Vite tree-shakes the
+  // mocks in. A real env var (CI/local) still wins over this default.
+  const define =
+    mode === "qa" && process.env.VITE_ENABLE_MSW === undefined
+      ? { "import.meta.env.VITE_ENABLE_MSW": JSON.stringify("true") }
       : undefined;
 
   const proxy = proxyTarget
@@ -37,6 +45,7 @@ export default defineConfig(({ command }) => {
     : undefined;
 
   return {
+    define,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

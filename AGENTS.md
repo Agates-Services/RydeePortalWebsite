@@ -37,7 +37,7 @@ src/
 | -------------------------- | ---------------------------------------------------------------------------------- |
 | `npm run dev`              | Vite dev server; boots MSW iff `VITE_ENABLE_MSW=true`                              |
 | `npm run build`            | Build to `dist/`. Real prod build is `VITE_ENABLE_MSW=false` — MSW absent (verify with `rg msw dist/assets/*.js` → 0 hits). A `VITE_ENABLE_MSW=true` build is a deliberate QA/demo build that ships mocks + copies `public/mockServiceWorker.js` to `dist/` root (only correct when hosted at site root). |
-| `npm run build:qa`         | Committed QA/demo config (`.env.qa`, `vite build --mode qa`) — MSW bundled + `mockServiceWorker.js` at dist root. |
+| `npm run build:qa`         | QA/demo build (`vite build --mode qa`) — no env file; `vite.config.ts` + `scripts/check-env.ts` default `VITE_ENABLE_MSW=true` for mode `qa`, so MSW is bundled + `mockServiceWorker.js` ships at dist root. |
 | `npm run lint`             | ESLint over `src/`                                                                 |
 | `npm run typecheck`        | `tsc --noEmit`                                                                     |
 | `npm run typecheck:strict` | `tsc --noEmit --strict` — must stay at 0 errors                                    |

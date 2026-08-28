@@ -1,14 +1,14 @@
-name: CI
+name: CI & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, qa, dev]
   pull_request:
-    branches: [main]
+    branches: [main, qa, dev]
 
 jobs:
-  verify:
-    name: lint · typecheck · build · test
+  ci:
+    name: lint · typecheck · strict · test · build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,16 +28,97 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build
-        env:
-          VITE_API_BASE_URL: ""
-          VITE_ENABLE_MSW: "false"
-        run: npm run build
+      - name: Typecheck (strict)
+        run: npm run typecheck:strict
 
       - name: Test
         run: npm test
 
-      # Non-blocking visibility signal — flip to blocking once D6 is closed.
-      - name: Typecheck (strict — advisory)
-        continue-on-error: true
-        run: npm run typecheck:strict
+      # Sanity build in production mode: proves the default build stays
+      # MSW-free (mocks tree-shaken out). Deploy jobs rebuild per env.
+      - name: Production build (MSW-purity gate)
+        env:
+          VITE_ENABLE_MSW: "false"
+          VITE_API_BASE_URL: "https://47itvrad75.execute-api.ap-south-1.amazonaws.com/prod"
+        run: |
+          npm run build
+          if grep -l msw dist/assets/*.js; then
+            echo "::error::MSW leaked into a production bundle chunk"
+            exit 1
+          fi
+          echo "MSW purity OK — no mocks in dist/assets/*.js"
+
+  # ── Deploy ────────────────────────────────────────────────────────────
+  # One deploy job, gated on CI + branch push only. Each branch has its own
+  # readable env block below. To point qa or dev at a REAL backend later:
+  # flip VITE_ENABLE_MSW to "false" and set VITE_API_BASE_URL for that
+  # branch's step (see local-docs/adr/0012-ci-cd-hostinger.md).
+  deploy:
+    name: Build & FTP deploy
+    needs: ci
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # ── main → production (real API, mocks OFF) ──────────────────────
+      - name: Build production
+        if: github.ref == 'refs/heads/main'
+        env:
+          VITE_ENABLE_MSW: "false"
+          VITE_API_BASE_URL: "https://47itvrad75.execute-api.ap-south-1.amazonaws.com/prod"
+        run: |
+          npm run build
+          # Real-API builds must not ship the mock service worker.
+          rm -f dist/mockServiceWorker.js
+
+      # ── qa → QA (mocks ON) ───────────────────────────────────────────
+      - name: Build QA
+        if: github.ref == 'refs/heads/qa'
+        env:
+          VITE_ENABLE_MSW: "true"
+          VITE_API_BASE_URL: ""
+        run: npm run build:qa
+
+      # ── dev → dev (mocks ON — same build as QA, separate target) ─────
+      - name: Build dev
+        if: github.ref == 'refs/heads/dev'
+        env:
+          VITE_ENABLE_MSW: "true"
+          VITE_API_BASE_URL: ""
+        run: npm run build:qa
+
+      # Subdomain docroots differ by how Hostinger created them; the owner
+      # sets each once as a repo variable (see ADR-0012). Trailing slash matters.
+      - name: Resolve server directory
+        id: target
+        run: |
+          case "${{ github.ref_name }}" in
+            main) DIR="${{ vars.FTP_DIR_MAIN }}" ;;
+            qa)   DIR="${{ vars.FTP_DIR_QA }}" ;;
+            dev)  DIR="${{ vars.FTP_DIR_DEV }}" ;;
+          esac
+          if [ -z "$DIR" ]; then
+            echo "::error::server-dir repo variable for ${{ github.ref_name }} is unset (set FTP_DIR_MAIN/QA/DEV)"
+            exit 1
+          fi
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - name: FTP deploy
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ${{ steps.target.outputs.dir }}
+          dangerous-clean-slate: false
