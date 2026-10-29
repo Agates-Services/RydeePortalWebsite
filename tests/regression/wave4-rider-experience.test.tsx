@@ -24,10 +24,10 @@ function mkRide(over: Partial<Ride> & { rideId: string }): Ride {
 }
 
 describe("Wave 4 — stat derivation", () => {
-  const now = new Date("2026-08-11T12:00:00Z").getTime();
-  const todayEarly = new Date("2026-08-11T02:00:00Z").toISOString();
-  const yesterday = new Date("2026-08-10T20:00:00Z").toISOString();
-  const lastWeek = new Date("2026-08-02T09:00:00Z").toISOString();
+  const now = new Date(2026, 7, 11, 12).getTime();
+  const todayEarly = new Date(2026, 7, 11, 2).toISOString();
+  const yesterday = new Date(2026, 7, 10, 20).toISOString();
+  const lastWeek = new Date(2026, 7, 2, 9).toISOString();
 
   it("sums today's earnings only", () => {
     const rides = [

@@ -3,10 +3,15 @@ import { joinUrl, post } from "./client";
 export const API_GET_ALL_RIDERS_URL = joinUrl("/get-all-riders");
 export const API_ACTIVATE_RIDER_URL = joinUrl("/activate-rider");
 export const API_UPDATE_USER_URL = joinUrl("/update-user");
-export const API_RESET_RIDER_PIN_URL = joinUrl("/reset-rider-pin");
 
 interface RidersResponse {
   riders?: Array<Record<string, unknown>>;
+  rider?: Record<string, unknown>;
+}
+
+interface RidersWireResponse {
+  riders?: unknown;
+  rider?: unknown;
 }
 
 interface WireRider {
@@ -37,15 +42,22 @@ function flattenRider(r: WireRider): Record<string, unknown> {
   return flat;
 }
 
-function normalise(res: { riders?: unknown }): RidersResponse {
-  if (!res || !Array.isArray(res.riders)) return { riders: [] };
-  return {
-    riders: (res.riders as WireRider[]).map(flattenRider),
-  };
+function normalise(res: RidersWireResponse): RidersResponse {
+  if (Array.isArray(res.riders)) {
+    return {
+      riders: (res.riders as WireRider[]).map(flattenRider),
+    };
+  }
+  if (res.rider && typeof res.rider === "object") {
+    const rider = flattenRider(res.rider as WireRider);
+    return { riders: [rider], rider };
+  }
+  if (!res.riders) return { riders: [] };
+  throw new Error("Invalid get-all-riders response");
 }
 
 export async function getAllRiders(): Promise<RidersResponse> {
-  const raw = await post<{ riders?: unknown }>(API_GET_ALL_RIDERS_URL);
+  const raw = await post<RidersWireResponse>(API_GET_ALL_RIDERS_URL);
   return normalise(raw);
 }
 
@@ -71,15 +83,4 @@ export function updateUser(
   patch: Record<string, unknown>,
 ): Promise<UpdateUserResponse> {
   return post<UpdateUserResponse>(API_UPDATE_USER_URL, { phone, userId, profile: patch });
-}
-
-export interface ResetRiderPinResponse {
-  success: boolean;
-  pin?: string;
-  lastResetAt?: string;
-  error?: string;
-}
-
-export function resetRiderPin(phone: string, role: string): Promise<ResetRiderPinResponse> {
-  return post<ResetRiderPinResponse>(API_RESET_RIDER_PIN_URL, { phone, role });
 }

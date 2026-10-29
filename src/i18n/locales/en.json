@@ -446,22 +446,13 @@
         "lastReset": "Last reset: {{date}}",
         "reset": "Reset PIN",
         "resetting": "Resetting…",
+        "newPin": "New PIN",
+        "newPinPlaceholder": "Enter 6-digit PIN",
+        "newPinHelp": "Use exactly 6 digits.",
+        "newPinInvalid": "Enter a 6-digit PIN.",
         "unavailable": "Reset PIN is temporarily unavailable",
         "resetFailed": "Could not reset PIN.",
-        "confirm": {
-          "title": "Reset PIN for {{name}}?",
-          "description": "The current PIN will stop working immediately.",
-          "confirm": "Reset PIN",
-          "cancel": "Cancel"
-        },
-        "result": {
-          "title": "New PIN generated",
-          "description": "Share this PIN with the rider now. It will not be shown again.",
-          "copy": "Copy",
-          "copied": "Copied",
-          "done": "Done",
-          "pinLabel": "New PIN"
-        }
+        "resetSuccess": "PIN reset successfully."
       }
     },
     "profileCard": {

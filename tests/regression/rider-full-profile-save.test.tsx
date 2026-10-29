@@ -22,7 +22,6 @@ const WIRE_RIDER = {
     rideState: "IDLE",
     dateOfJoining: "2026-07-01",
     dob: "1995-04-12",
-    cnic: "4210112345671",
     rideCount: 0,
     totalRides: 3,
     totalDistance: 12,
@@ -32,7 +31,7 @@ const WIRE_RIDER = {
     currentLocation: null,
     lastCustomerID: null,
     activationStatus: "PENDING",
-    documents: { cnic: null, license: null, vehicleRegistration: null, profilePicture: null, utilityBill: null },
+    documents: { cnic: "4210112345671", license: null, vehicleRegistration: null, profilePicture: null, utilityBill: null },
   },
 };
 
@@ -92,7 +91,7 @@ function mountFetch(phone: string) {
   return render(<RouterProvider router={router} />);
 }
 
-describe("Rider full-profile save (read + write path regression)", () => {
+describe("Rider profile save (read + write path regression)", () => {
   it("flattener carries address and preserves the raw wire profile", async () => {
     withGetAllRiders();
     const { riders } = await getAllRiders();
@@ -111,9 +110,58 @@ describe("Rider full-profile save (read + write path regression)", () => {
     mountFetch("3323720454");
     expect(await screen.findByDisplayValue("House 5, Street 2")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Ghulam Ali")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("42101-1234567-1")).toBeInTheDocument();
   });
 
-  it("sends the FULL wire profile on save when only address changed", async () => {
+  it("loads CNIC from a singular rider response when phone is null", async () => {
+    let seen: { phone?: string; userId?: string; profile?: Record<string, unknown> } | null = null;
+    server.use(
+      http.post(API_GET_ALL_RIDERS_URL, () =>
+        HttpResponse.json({
+          success: true,
+          rider: {
+            userId: "d90e7359-52f5-4ecc-8173-9893327b29ee",
+            profile: {
+              name: "Tester4",
+              phone: null,
+              role: "rider",
+              area: "DHA Phase 1",
+              address: null,
+              dob: "2008-01-08",
+              activationStatus: "ACTIVE",
+              documents: {
+                cnic: "1234578986565",
+                license: null,
+                vehicleRegistration: null,
+                profilePicture: null,
+                utilityBill: null,
+              },
+            },
+          },
+        }),
+      ),
+      http.post(API_GET_RIDER_DOCUMENTS_URL, () => HttpResponse.json({ documents: [] })),
+      http.post(API_UPDATE_USER_URL, async ({ request }) => {
+        seen = (await request.json()) as typeof seen;
+        return HttpResponse.json({ message: "patched", updatedFields: {} });
+      }),
+    );
+    mountFetch("03001234567");
+
+    expect(await screen.findByDisplayValue("12345-7898656-5")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Address"), "Updated address");
+    await user.click(screen.getByTestId("fqa-edit-save"));
+
+    await waitFor(() => expect(seen).not.toBeNull());
+    expect(seen).toEqual({
+      phone: "03001234567",
+      userId: "d90e7359-52f5-4ecc-8173-9893327b29ee",
+      profile: { address: "Updated address" },
+    });
+  });
+
+  it("sends only editable profile fields on save", async () => {
     withGetAllRiders();
     let seen: { phone?: string; userId?: string; profile?: Record<string, unknown> } | null = null;
     server.use(
@@ -131,19 +179,30 @@ describe("Rider full-profile save (read + write path regression)", () => {
 
     await waitFor(() => expect(seen).not.toBeNull());
     expect(seen!.userId).toBe("2f878136-39df-4c91-88af-2ddc5d06b0c4");
-    const profile = seen!.profile!;
-    expect(profile.address).toBe("New Address 99");
-    expect(profile.role).toBe("rider");
-    expect(profile.activationStatus).toBe("PENDING");
-    expect(profile.rideState).toBe("IDLE");
-    expect(profile.rating).toBe(5);
-    expect(profile.totalRides).toBe(3);
-    expect(profile.documents).toBeTypeOf("object");
-    expect(profile.name).toBe("Ghulam Ali");
-    expect(profile.dob).toBe("1995-04-12");
+    expect(seen!.profile).toEqual({ address: "New Address 99" });
   });
 
-  it("Block status change sends the full wire profile with activationStatus=BLOCKED", async () => {
+  it("sends the nested CNIC only when the CNIC changes", async () => {
+    withGetAllRiders();
+    let seen: { profile?: Record<string, unknown> } | null = null;
+    server.use(
+      http.post(API_UPDATE_USER_URL, async ({ request }) => {
+        seen = (await request.json()) as typeof seen;
+        return HttpResponse.json({ message: "patched", updatedFields: {} });
+      }),
+    );
+    mountFetch("3323720454");
+    const user = userEvent.setup();
+    const cnicInput = await screen.findByDisplayValue("42101-1234567-1");
+    await user.clear(cnicInput);
+    await user.type(cnicInput, "1234567890123");
+    await user.click(screen.getByTestId("fqa-edit-save"));
+
+    await waitFor(() => expect(seen).not.toBeNull());
+    expect(seen!.profile).toEqual({ documents: { cnic: "1234567890123" } });
+  });
+
+  it("Block status change sends only activationStatus", async () => {
     withActiveRider();
     let seen: { profile?: Record<string, unknown> } | null = null;
     server.use(
@@ -160,11 +219,6 @@ describe("Rider full-profile save (read + write path regression)", () => {
     await user.click(confirm[confirm.length - 1]);
 
     await waitFor(() => expect(seen).not.toBeNull());
-    const profile = seen!.profile!;
-    expect(profile.activationStatus).toBe("BLOCKED");
-    expect(profile.name).toBe("Ghulam Ali");
-    expect(profile.rating).toBe(5);
-    expect(profile.documents).toBeTypeOf("object");
-    expect(profile.dateOfJoining).toBe("2026-07-01");
+    expect(seen!.profile).toEqual({ activationStatus: "BLOCKED" });
   });
 });

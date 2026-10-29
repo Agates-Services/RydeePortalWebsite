@@ -2,7 +2,6 @@ import { http, HttpResponse } from "msw";
 import {
   API_ACTIVATE_RIDER_URL,
   API_GET_ALL_RIDERS_URL,
-  API_RESET_RIDER_PIN_URL,
   API_UPDATE_USER_URL,
 } from "@/api/riders";
 
@@ -114,14 +113,6 @@ function normalisePhone(v: string): string {
   return v.replace(/\D/g, "");
 }
 
-const pinResetAt = new Map<string, string>();
-
-function generatePin(): string {
-  let out = "";
-  for (let i = 0; i < 6; i++) out += Math.floor(Math.random() * 10).toString();
-  return out;
-}
-
 function applyPatch(target: RiderProfile, patch: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(patch)) {
     if (key === "documents" && value && typeof value === "object") {
@@ -193,23 +184,5 @@ export const ridersHandlers = [
       message: "User profile patched successfully",
       updatedFields: { profile: patch },
     });
-  }),
-  http.post(API_RESET_RIDER_PIN_URL, async ({ request }) => {
-    const body = (await request.json().catch(() => ({}))) as { phone?: unknown; role?: unknown };
-    const phone = typeof body.phone === "string" ? body.phone : "";
-    const role = typeof body.role === "string" ? body.role : "";
-    if (!phone || !role) {
-      return HttpResponse.json({ success: false, error: "phone and role are required" }, { status: 400 });
-    }
-    const key = normalisePhone(phone);
-    const inAll = allRidersSeeds.find((s) => normalisePhone(s.profile.phone) === key);
-    if (!inAll) {
-      return HttpResponse.json({ success: false, error: "Rider not found" }, { status: 404 });
-    }
-    const pin = generatePin();
-    inAll.profile.pin = pin;
-    const lastResetAt = new Date().toISOString();
-    pinResetAt.set(key, lastResetAt);
-    return HttpResponse.json({ success: true, pin, lastResetAt });
   }),
 ];

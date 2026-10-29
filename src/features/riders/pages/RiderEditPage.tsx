@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Camera, Copy, Download, Eye, FileUp, Info, KeyRound, Loader2, Lock, ShieldOff, Trash2, X } from "lucide-react";
-import { activateRider, getAllRiders, resetRiderPin, updateUser } from "@/api/riders";
+import { ArrowLeft, Camera, Download, Eye, FileUp, Info, KeyRound, Loader2, Lock, ShieldOff, Trash2, X } from "lucide-react";
+import { activateRider, getAllRiders, updateUser } from "@/api/riders";
 import { getAllUsers } from "@/api/users";
 import { useAuth } from "@/features/auth/useAuth";
 import type { RiderStatus } from "@/types/rider";
@@ -156,6 +156,7 @@ export default function RiderEditPage() {
       : null;
 
   const [row, setRow] = useState<AllRidersRow | null>(seededRow);
+  const riderPhone = row?.phone || decodeURIComponent(phoneParam ?? "");
   const [loading, setLoading] = useState(seededRow === null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -198,12 +199,12 @@ export default function RiderEditPage() {
   const [activatePin, setActivatePin] = useState("");
   const [activatePinTouched, setActivatePinTouched] = useState(false);
 
-  const [pinResetOpen, setPinResetOpen] = useState(false);
   const [pinResetting, setPinResetting] = useState(false);
   const [pinResetError, setPinResetError] = useState<string | null>(null);
-  const [pinResult, setPinResult] = useState<string | null>(null);
+  const [pinResetSuccess, setPinResetSuccess] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [newPinTouched, setNewPinTouched] = useState(false);
   const [pinLastReset, setPinLastReset] = useState<string | null>(null);
-  const [pinCopied, setPinCopied] = useState(false);
   const [pinUnavailable, setPinUnavailable] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -225,7 +226,9 @@ export default function RiderEditPage() {
           const data = await getAllRiders();
           if (cancelled) return;
           const rows = mapAllRidersResponse(data.riders ?? []);
-          match = rows.find((r) => normalisePhone(r.phone) === target) ?? null;
+          match = data.rider
+            ? mapAllRidersResponse([data.rider])[0] ?? null
+            : rows.find((r) => normalisePhone(r.phone) === target) ?? null;
         } else {
           const data = await getAllUsers(callerRole);
           if (cancelled) return;
@@ -490,7 +493,7 @@ export default function RiderEditPage() {
     setStatusError(null);
     setStatusSaved(null);
     try {
-      await updateUser(row.phone, row.userId ?? null, buildFullProfile(next));
+      await updateUser(riderPhone, row.userId ?? null, { activationStatus: next.toUpperCase() });
       setStatus(next);
       const savedKind = next === "active" ? "active" : next;
       setStatusSaved(savedKind);
@@ -511,7 +514,7 @@ export default function RiderEditPage() {
     setStatusError(null);
     setStatusSaved(null);
     try {
-      const res = await activateRider(row.phone, activatePin);
+      const res = await activateRider(riderPhone, activatePin);
       if (res.success) {
         setStatus("active");
         setStatusSaved("active");
@@ -541,14 +544,20 @@ export default function RiderEditPage() {
 
   const handleResetPin = async () => {
     if (!row) return;
+    if (!/^\d{6}$/.test(newPin)) {
+      setNewPinTouched(true);
+      return;
+    }
     setPinResetting(true);
     setPinResetError(null);
+    setPinResetSuccess(false);
     try {
-      const res = await resetRiderPin(row.phone, "Rider");
-      if (res.success && res.pin) {
-        setPinResult(res.pin);
-        setPinLastReset(res.lastResetAt ?? new Date().toISOString());
-        setPinCopied(false);
+      const res = await activateRider(riderPhone, newPin);
+      if (res.success) {
+        setPinLastReset(new Date().toISOString());
+        setPinResetSuccess(true);
+        setNewPin("");
+        setNewPinTouched(false);
       } else {
         setPinResetError(res.error ?? t("riders.edit.pin.resetFailed"));
       }
@@ -557,33 +566,20 @@ export default function RiderEditPage() {
       setPinResetError(err instanceof Error ? err.message : t("riders.edit.pin.resetFailed"));
     } finally {
       setPinResetting(false);
-      setPinResetOpen(false);
     }
   };
 
-  const handleCopyPin = async () => {
-    if (!pinResult) return;
-    try {
-      await navigator.clipboard.writeText(pinResult);
-      setPinCopied(true);
-      window.setTimeout(() => setPinCopied(false), 2000);
-    } catch {
-      setPinCopied(false);
+  const buildProfilePatch = (): Record<string, unknown> => {
+    const initial = initialFormRef.current;
+    const patch: Record<string, unknown> = {};
+    if (form.name.trim() !== initial.name.trim()) patch.name = form.name.trim();
+    if (form.area !== initial.area) patch.area = form.area;
+    if (form.address !== initial.address) patch.address = form.address;
+    if (normalizeCnicInput(form.cnic) !== normalizeCnicInput(initial.cnic)) {
+      patch.documents = { cnic: normalizeCnicInput(form.cnic) };
     }
-  };
-
-  const buildFullProfile = (overrideStatus?: RiderStatus): Record<string, unknown> => {
-    const base = row?.rawProfile ?? {};
-    const full: Record<string, unknown> = {
-      ...base,
-      name: form.name.trim(),
-      area: form.area,
-      address: form.address,
-      cnic: normalizeCnicInput(form.cnic),
-      dob: form.dob,
-    };
-    if (isRider && overrideStatus) full.activationStatus = overrideStatus.toUpperCase();
-    return full;
+    if (form.dob !== initial.dob) patch.dob = form.dob;
+    return patch;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -597,7 +593,7 @@ export default function RiderEditPage() {
     if (!canSave || !row) return;
     setSaving(true); setSaveError(null); setSaved(false);
     try {
-      await updateUser(row.phone, row.userId ?? null, buildFullProfile());
+      await updateUser(riderPhone, row.userId ?? null, buildProfilePatch());
       const nextInitial: FormState = { ...form, name: form.name.trim(), cnic: normalizeCnicInput(form.cnic) };
       initialFormRef.current = nextInitial;
       setForm(nextInitial);
@@ -853,15 +849,53 @@ export default function RiderEditPage() {
             {pinResetError && (
               <div role="alert" className="mt-3 rounded-md border border-destructive/25 bg-destructive/10 p-2.5 text-xs text-destructive">{pinResetError}</div>
             )}
+            {pinResetSuccess && (
+              <div role="status" className="mt-3 rounded-md border border-success/25 bg-success-muted p-2.5 text-xs text-success">{t("riders.edit.pin.resetSuccess")}</div>
+            )}
 
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
               {pinUnavailable ? (
                 <div role="status" className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">{t("riders.edit.pin.unavailable")}</div>
               ) : (
-                <Button type="button" variant="outline" onClick={() => { setPinResetError(null); setPinResetOpen(true); }} disabled={pinResetting} aria-busy={pinResetting || undefined} data-testid="fqa-pin-reset">
-                  {pinResetting ? (<Loader2 size={14} aria-hidden="true" className="me-2 animate-spin" />) : (<KeyRound size={14} aria-hidden="true" className="me-2" />)}
-                  {pinResetting ? t("riders.edit.pin.resetting") : t("riders.edit.pin.reset")}
-                </Button>
+                <>
+                  <div className="flex-1">
+                    <Label htmlFor="fqa-rider-new-pin">{t("riders.edit.pin.newPin")}</Label>
+                    <Input
+                      id="fqa-rider-new-pin"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={newPin}
+                      onChange={(e) => {
+                        setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setPinResetError(null);
+                        setPinResetSuccess(false);
+                      }}
+                      onBlur={() => setNewPinTouched(true)}
+                      placeholder={t("riders.edit.pin.newPinPlaceholder")}
+                      aria-invalid={newPinTouched && !/^\d{6}$/.test(newPin) || undefined}
+                      aria-describedby={newPinTouched && !/^\d{6}$/.test(newPin) ? "fqa-rider-new-pin-error" : "fqa-rider-new-pin-help"}
+                      className="mt-1.5 font-mono"
+                      style={{ unicodeBidi: "plaintext" }}
+                      disabled={pinResetting}
+                      data-testid="fqa-rider-new-pin"
+                    />
+                    <p id="fqa-rider-new-pin-help" className="mt-1 text-xs text-muted-foreground">{t("riders.edit.pin.newPinHelp")}</p>
+                    {newPinTouched && !/^\d{6}$/.test(newPin) && (
+                      <p id="fqa-rider-new-pin-error" role="alert" className="mt-1 text-xs text-destructive">{t("riders.edit.pin.newPinInvalid")}</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetPin}
+                    disabled={pinResetting || !/^\d{6}$/.test(newPin)}
+                    aria-busy={pinResetting || undefined}
+                    data-testid="fqa-pin-reset"
+                  >
+                    {pinResetting ? (<Loader2 size={14} aria-hidden="true" className="me-2 animate-spin" />) : (<KeyRound size={14} aria-hidden="true" className="me-2" />)}
+                    {pinResetting ? t("riders.edit.pin.resetting") : t("riders.edit.pin.reset")}
+                  </Button>
+                </>
               )}
             </div>
           </section>
@@ -1028,37 +1062,6 @@ export default function RiderEditPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={pinResetOpen} onOpenChange={(o) => (o || pinResetting ? undefined : setPinResetOpen(false))}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("riders.edit.pin.confirm.title", { name: row.name || "" })}</AlertDialogTitle>
-            <AlertDialogDescription>{t("riders.edit.pin.confirm.description")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pinResetting}>{t("riders.edit.pin.confirm.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleResetPin} disabled={pinResetting} aria-busy={pinResetting || undefined}>{pinResetting ? t("riders.edit.pin.resetting") : t("riders.edit.pin.confirm.confirm")}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={pinResult !== null} onOpenChange={() => undefined}>
-        <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("riders.edit.pin.result.title")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("riders.edit.pin.result.description")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="my-2 flex flex-col items-center gap-2">
-            <span className="sr-only" id="fqa-pin-result-label">{t("riders.edit.pin.result.pinLabel")}</span>
-            <span aria-labelledby="fqa-pin-result-label" className="rounded-md border border-border bg-muted/40 px-4 py-2 text-2xl font-mono tracking-[0.35em] text-foreground" style={{ unicodeBidi: "plaintext" }} data-testid="fqa-pin-result">{pinResult}</span>
-          </div>
-          <AlertDialogFooter>
-            <Button type="button" variant="outline" onClick={handleCopyPin} aria-live="polite">
-              <Copy size={14} aria-hidden="true" className="me-2" />{pinCopied ? t("riders.edit.pin.result.copied") : t("riders.edit.pin.result.copy")}
-            </Button>
-            <AlertDialogAction onClick={() => { setPinResult(null); setPinCopied(false); }}>{t("riders.edit.pin.result.done")}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

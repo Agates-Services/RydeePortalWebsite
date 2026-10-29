@@ -2,6 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import { mapAllRidersResponse, toAllRidersRow } from "@/features/riders/mapper";
 
 describe("toAllRidersRow — alias resolution", () => {
+  it("maps numeric CNIC values to strings", () => {
+    const r = toAllRidersRow({ cnic: 4210112345671 }, 0);
+    expect(r.cnic).toBe("4210112345671");
+  });
+
+  it("supports alternate CNIC property names", () => {
+    expect(toAllRidersRow({ cnicNumber: "4210112345671" }, 0).cnic).toBe("4210112345671");
+    expect(toAllRidersRow({ cnic_number: "4210112345671" }, 0).cnic).toBe("4210112345671");
+    expect(toAllRidersRow({ CNIC: "4210112345671" }, 0).cnic).toBe("4210112345671");
+  });
+
+  it("reads the CNIC from the rider documents object", () => {
+    expect(
+      toAllRidersRow({ documents: { cnic: "1234578986565" } }, 0).cnic,
+    ).toBe("1234578986565");
+  });
+
   it("prefers `area` over `rideArea` when both are present", () => {
     const r = toAllRidersRow({ area: "DHA", rideArea: "Clifton", activation_status: "active" }, 0);
     expect(r.area).toBe("DHA");

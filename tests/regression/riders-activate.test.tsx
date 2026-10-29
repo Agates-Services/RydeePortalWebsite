@@ -122,4 +122,74 @@ describe("Rider activate flow (W2-1 regression)", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(activateCalls.length).toBe(0);
   });
+
+  it("resets a rider PIN using the activate-rider request with the entered PIN", async () => {
+    server.use(
+      http.post(API_GET_RIDER_DOCUMENTS_URL, () => HttpResponse.json({ documents: [] })),
+    );
+
+    const activateCalls: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(API_ACTIVATE_RIDER_URL, async ({ request }) => {
+        activateCalls.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({
+          success: true,
+          message: "PIN updated",
+          updatedFields: { activation_status: "active" },
+        });
+      }),
+    );
+
+    mountAt("0312-4561234", {
+      id: 202,
+      name: "Alia Rehman",
+      phone: "0312-4561234",
+      cnic: "42101-1111111-1",
+      area: "Clifton",
+      joinedAt: "2026-07-15",
+      status: "active",
+    });
+
+    const user = userEvent.setup();
+    const pinInput = await screen.findByTestId("fqa-rider-new-pin");
+    const resetButton = screen.getByTestId("fqa-pin-reset");
+    await user.type(pinInput, "654321");
+    await user.click(resetButton);
+
+    await waitFor(() => expect(activateCalls).toHaveLength(1));
+    expect(activateCalls[0]).toEqual({ phone: "0312-4561234", pin: "654321" });
+    expect(await screen.findByText("PIN reset successfully.")).toBeInTheDocument();
+  });
+
+  it("requires a 6-digit PIN before resetting", async () => {
+    server.use(
+      http.post(API_GET_RIDER_DOCUMENTS_URL, () => HttpResponse.json({ documents: [] })),
+    );
+
+    const activateCalls: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(API_ACTIVATE_RIDER_URL, async ({ request }) => {
+        activateCalls.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ success: true, message: "ok" });
+      }),
+    );
+
+    mountAt("0312-4561234", {
+      id: 202,
+      name: "Alia Rehman",
+      phone: "0312-4561234",
+      cnic: "42101-1111111-1",
+      area: "Clifton",
+      joinedAt: "2026-07-15",
+      status: "active",
+    });
+
+    const user = userEvent.setup();
+    const pinInput = await screen.findByTestId("fqa-rider-new-pin");
+    const resetButton = screen.getByTestId("fqa-pin-reset");
+    await user.type(pinInput, "1234");
+
+    expect(resetButton).toBeDisabled();
+    expect(activateCalls).toHaveLength(0);
+  });
 });

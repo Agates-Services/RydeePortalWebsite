@@ -26,6 +26,17 @@ function str(raw: Record<string, unknown>, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
+function cnic(raw: Record<string, unknown>): string {
+  const documents =
+    raw.documents && typeof raw.documents === "object"
+      ? (raw.documents as Record<string, unknown>)
+      : {};
+  const value =
+    documents.cnic ?? raw.cnic ?? raw.cnicNumber ?? raw.cnic_number ?? raw.CNIC;
+  if (typeof value === "string") return value;
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
+}
+
 export function toAllRidersRow(raw: Record<string, unknown>, idx: number): AllRidersRow {
   const id = typeof raw.id === "number" ? raw.id : idx + 1;
   const area =
@@ -50,7 +61,7 @@ export function toAllRidersRow(raw: Record<string, unknown>, idx: number): AllRi
     ...(userId !== undefined ? { userId } : {}),
     name: str(raw, "name"),
     phone: str(raw, "phone"),
-    cnic: str(raw, "cnic"),
+    cnic: cnic(raw),
     status: resolveStatus(raw),
     area,
     joinedAt: str(raw, "joinedAt"),

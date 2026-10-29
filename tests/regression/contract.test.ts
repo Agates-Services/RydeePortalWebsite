@@ -154,6 +154,35 @@ describe("H1/H6 — API-Document-V1 contract (riders domain)", () => {
     expect(String(row.activationStatus)).toBe(String(row.activationStatus).toLowerCase());
   });
 
+  it("api-client accepts a singular rider response", async () => {
+    const { API_GET_ALL_RIDERS_URL, getAllRiders } = await import("@/api/riders");
+    server.use(
+      http.post(API_GET_ALL_RIDERS_URL, () =>
+        HttpResponse.json({
+          success: true,
+          rider: {
+            userId: "rider-1",
+            profile: {
+              name: "Tester4",
+              phone: "03001234567",
+              activationStatus: "ACTIVE",
+              documents: { cnic: "1234578986565" },
+            },
+          },
+        }),
+      ),
+    );
+
+    const { riders } = await getAllRiders();
+    expect(riders).toHaveLength(1);
+    expect(riders?.[0]).toMatchObject({
+      userId: "rider-1",
+      phone: "03001234567",
+      documents: { cnic: "1234578986565" },
+      activationStatus: "active",
+    });
+  });
+
   it("update-user body is { phone, userId, profile:{...patch} }", async () => {
     const { updateUser } = await import("@/api/riders");
     const { API_UPDATE_USER_URL } = await import("@/api/riders");
