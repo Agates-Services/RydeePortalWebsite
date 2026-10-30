@@ -14,9 +14,14 @@ import {
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = process.env.CHECK_ENV_PROJECT_ROOT ?? path.resolve(scriptDirectory, "..");
 
-// Passing "" as the prefix returns every variable (not just VITE_*) so the validator can see them all. First positional argv lets build:qa point the gate at .env.qa; defaults to "production" to match plain `vite build`.
+// Passing "" as the prefix returns every variable (not just VITE_*) so the validator can see them all. First positional argv lets build:qa run the gate in "qa" mode; defaults to "production" to match plain `vite build`.
 const viteMode = process.argv[2] ?? "production";
 const viteEnvironment = loadEnv(viteMode, projectRoot, "");
+
+// QA/demo builds carry no committed env file; mirror vite.config's mode-qa default so the gate sees MSW enabled unless a real env var overrides it.
+if (viteMode === "qa" && viteEnvironment.VITE_ENABLE_MSW === undefined) {
+  viteEnvironment.VITE_ENABLE_MSW = "true";
+}
 
 const validation = validateEnvironment(viteEnvironment);
 

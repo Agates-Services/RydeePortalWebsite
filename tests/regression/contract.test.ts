@@ -142,6 +142,8 @@ describe("H1/H6 — API-Document-V1 contract (riders domain)", () => {
     expect(first.profile).toBeTypeOf("object");
     expect(first.profile.activationStatus).toBe(String(first.profile.activationStatus).toUpperCase());
     expect(first.profile.documents).toBeTypeOf("object");
+    expect((first.profile.documents as Record<string, unknown>).cnic).toBeTypeOf("string");
+    expect(first.profile.cnic).toBeUndefined();
   });
 
   it("api-client flattens rider rows and lowercases activationStatus", async () => {
@@ -181,6 +183,62 @@ describe("H1/H6 — API-Document-V1 contract (riders domain)", () => {
       documents: { cnic: "1234578986565" },
       activationStatus: "active",
     });
+  });
+
+  it("api-client lifts profile.documents.cnic to the flat cnic field", async () => {
+    const { API_GET_ALL_RIDERS_URL, getAllRiders } = await import("@/api/riders");
+    server.use(
+      http.post(API_GET_ALL_RIDERS_URL, () =>
+        HttpResponse.json({
+          success: true,
+          riders: [
+            {
+              userId: "rider-x",
+              profile: {
+                name: "Salman",
+                phone: "3479656507",
+                role: "rider",
+                activationStatus: "ACTIVE",
+                documents: {
+                  cnic: "45645-4545454-5",
+                  license: null,
+                  vehicleRegistration: null,
+                  profilePicture: null,
+                  utilityBill: null,
+                },
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const { riders } = await getAllRiders();
+    expect(riders![0].cnic).toBe("45645-4545454-5");
+  });
+
+  it("api-client falls back to legacy top-level cnic when documents.cnic is absent", async () => {
+    const { API_GET_ALL_RIDERS_URL, getAllRiders } = await import("@/api/riders");
+    server.use(
+      http.post(API_GET_ALL_RIDERS_URL, () =>
+        HttpResponse.json({
+          success: true,
+          riders: [
+            {
+              userId: "rider-y",
+              profile: {
+                name: "Legacy",
+                phone: "3001112222",
+                role: "rider",
+                activationStatus: "ACTIVE",
+                cnic: "42101-9999999-9",
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    const { riders } = await getAllRiders();
+    expect(riders![0].cnic).toBe("42101-9999999-9");
   });
 
   it("update-user body is { phone, userId, profile:{...patch} }", async () => {

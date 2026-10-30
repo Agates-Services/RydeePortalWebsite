@@ -182,7 +182,7 @@ describe("Rider profile save (read + write path regression)", () => {
     expect(seen!.profile).toEqual({ address: "New Address 99" });
   });
 
-  it("sends the nested CNIC only when the CNIC changes", async () => {
+  it("sends only the changed nested CNIC under documents", async () => {
     withGetAllRiders();
     let seen: { profile?: Record<string, unknown> } | null = null;
     server.use(

@@ -1,4 +1,4 @@
-import logoUrl from "@/assets/Logo.png";
+import { RydeeLogo } from "@/assets/RydeeLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -37,10 +37,8 @@ export function Bg() {
 export function Logo({ subtitle, size = "md" }: { subtitle?: string; size?: "sm" | "md" }) {
   return (
     <div className={`flex flex-col items-center gap-2 ${size === "md" ? "mb-8" : "mb-0"}`}>
-      <img
-        src={logoUrl}
-        alt="Rydee"
-        className={size === "md" ? "w-48 object-contain" : "w-32 object-contain"}
+      <RydeeLogo
+        className={"w-auto text-foreground " + (size === "md" ? "h-50" : "h-20")}
         style={{ filter: "drop-shadow(0 4px 16px rgba(23,168,130,0.20))" }}
       />
       {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
