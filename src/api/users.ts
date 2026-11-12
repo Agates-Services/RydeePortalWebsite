@@ -1,6 +1,6 @@
 import { joinUrl, post } from "./client";
 
-export const API_GET_ALL_USERS_URL = joinUrl("/get-all-users");
+export const API_GET_ALL_USERS_URL = joinUrl("/get-all-riders");
 
 interface WireUser {
   role?: unknown;

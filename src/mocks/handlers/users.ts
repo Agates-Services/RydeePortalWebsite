@@ -69,7 +69,7 @@ function toEnvelope(role: "Admin" | "Operator", profile: UserProfile): UserEnvel
 export const usersHandlers = [
   http.post(API_GET_ALL_USERS_URL, async ({ request }) => {
     // Mock-only convenience: real backend MUST derive caller role from the session
-    // cookie, never from the request body. See ADR-0003 /get-all-users row.
+    // cookie, never from the request body. See ADR-0003 /get-all-riders row.
     const body = (await request.json().catch(() => ({}))) as { role?: unknown };
     const callerRole = typeof body.role === "string" ? body.role : "";
     const users: UserEnvelope[] = [];
