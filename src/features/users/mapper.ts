@@ -1,4 +1,4 @@
-import type { UserRole, UsersRow } from "./types";
+import type { UserRole, UserStatus, UsersRow } from "./types";
 
 const KNOWN_ROLES: readonly UserRole[] = ["Admin", "Operator"];
 
@@ -14,6 +14,11 @@ function str(raw: Record<string, unknown>, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
+function normaliseStatus(raw: unknown): UserStatus {
+  const v = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  return v === "BLOCKED" || v === "DISABLED" ? "disabled" : "active";
+}
+
 export function toUsersRow(raw: Record<string, unknown>, idx: number): UsersRow | null {
   const role = normaliseRole(raw.role);
   if (!role) return null;
@@ -26,6 +31,7 @@ export function toUsersRow(raw: Record<string, unknown>, idx: number): UsersRow 
     role,
     area: str(raw, "area"),
     joinedAt: str(raw, "joinedAt"),
+    status: normaliseStatus(raw.activationStatus ?? raw.activation_status),
   };
 }
 

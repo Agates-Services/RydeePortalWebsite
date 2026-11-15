@@ -3,32 +3,13 @@ import { Link, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { getRide, type Ride, type RideStatus, type RidesScope } from "@/api/rides";
 import { useAuth } from "@/features/auth/useAuth";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { StatusPill } from "@/features/rides/components/RidesTable";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, User, MapPin, Banknote, Clock, Timer, Route, Hourglass, CheckCircle2 } from "lucide-react";
 
 const RideMap = lazy(() => import("./RideMap"));
-
-const STATUS_BG: Record<RideStatus, string> = {
-  going_to_pick: "#b45309",
-  waiting_for_ride: "#0369a1",
-  in_transit: "#15803d",
-  arrived: "#6b7280",
-  scheduled: "#6d28d9",
-  completed: "#15803d",
-  canceled: "#dc2626",
-};
-
-const STATUS_KEY: Record<RideStatus, string> = {
-  going_to_pick: "rides.status.goingToPick",
-  waiting_for_ride: "rides.status.waitingForRide",
-  in_transit: "rides.status.inTransit",
-  arrived: "rides.status.arrived",
-  scheduled: "rides.status.scheduled",
-  completed: "rides.status.completed",
-  canceled: "rides.status.canceled",
-};
 
 const LIVE_STATUSES: RideStatus[] = ["going_to_pick", "waiting_for_ride", "in_transit", "arrived"];
 const POLL_MS = 12000;
@@ -123,7 +104,7 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
     return (
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-2">{backLink}</div>
-        <Card className="px-6 py-12 text-center rounded-2xl">
+        <Card className="px-6 py-12 text-center rounded-xl">
           <p className="text-sm font-medium text-foreground">
             {t("rides.viewRidePage.notFoundTitle")}
           </p>
@@ -139,7 +120,7 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
     return (
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-2">{backLink}</div>
-        <Card className="px-6 py-12 text-center rounded-2xl">
+        <Card className="px-6 py-12 text-center rounded-xl">
           <p className="text-sm font-medium text-foreground">{t("rides.unavailableTitle")}</p>
           <p className="text-xs mt-1 text-muted-foreground">{t("rides.unavailableHint")}</p>
         </Card>
@@ -216,30 +197,21 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
           });
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col gap-3 p-4 md:p-6">
-      <div className="flex items-center gap-2">
+    <div className="flex min-h-[calc(100svh-5rem)] flex-col gap-4 p-4 md:h-[calc(100svh-5rem)] md:p-6">
+      <div className="flex flex-wrap items-center gap-2">
         {backLink}
-        <h2 className="text-lg font-semibold font-mono">{ride.rideId}</h2>
-        <Badge
-          className="gap-1.5 rounded-full border-transparent px-2.5 py-0.5 text-xs font-medium text-white"
-          style={{ backgroundColor: STATUS_BG[ride.status] }}
-        >
-          {t(STATUS_KEY[ride.status])}
-        </Badge>
-        {stalled && (
-          <Badge className="gap-1.5 rounded-full border-transparent px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-900">
-            {t("rides.viewRidePage.stalled")}
-          </Badge>
-        )}
+        <h2 className="font-mono text-lg font-semibold tracking-tight">{ride.rideId}</h2>
+        <StatusPill status={ride.status} />
+        {stalled && <StatusBadge tone="warning">{t("rides.viewRidePage.stalled")}</StatusBadge>}
       </div>
 
       <div className="flex flex-1 flex-col md:flex-row gap-4 min-h-0">
-        <Card className="rounded-2xl p-4 md:p-5 flex flex-col gap-3 md:w-[340px] md:shrink-0 md:self-start md:max-h-full md:overflow-y-auto">
-          <h3 className="text-base font-semibold">{t("rides.viewRidePage.detailsTitle")}</h3>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3">
-            <div className="flex flex-col">
-              <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                <User className="h-4 w-4" aria-hidden="true" />
+        <Card className="gap-0 rounded-xl p-0 md:w-[360px] md:shrink-0 md:self-start md:max-h-full md:overflow-y-auto">
+          <h3 className="border-b border-border px-4 py-3 text-sm font-semibold md:px-5">{t("rides.viewRidePage.detailsTitle")}</h3>
+          <dl className="grid grid-cols-1 divide-y divide-border px-4 md:px-5">
+            <div className="flex flex-col gap-1 py-3">
+              <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <User className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("rides.columns.rider")}
               </dt>
               <dd className="font-medium text-sm">
@@ -249,9 +221,9 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
                 </span>
               </dd>
             </div>
-            <div className="flex flex-col">
-              <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                <User className="h-4 w-4" aria-hidden="true" />
+            <div className="flex flex-col gap-1 py-3">
+              <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <User className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("rides.columns.customer")}
               </dt>
               <dd className="font-medium text-sm">
@@ -264,31 +236,31 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
                 </a>
               </dd>
             </div>
-            <div className="flex flex-col">
-              <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4" aria-hidden="true" />
+            <div className="flex flex-col gap-1 py-3">
+              <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("rides.columns.pickup")}
               </dt>
               <dd className="text-sm">{ride.pickup.label}</dd>
             </div>
-            <div className="flex flex-col">
-              <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4" aria-hidden="true" />
+            <div className="flex flex-col gap-1 py-3">
+              <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("rides.columns.dropoff")}
               </dt>
               <dd className="text-sm">{ride.dropoff.label}</dd>
             </div>
-            <div className="flex flex-col">
-              <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                <Banknote className="h-4 w-4" aria-hidden="true" />
+            <div className="flex flex-col gap-1 py-3">
+              <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Banknote className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("rides.columns.fare")}
               </dt>
               <dd className="text-sm">{fareText}</dd>
             </div>
             {ride.status === "completed" && completedDurationMin !== null && completedAtClock && (
-              <div className="flex flex-col">
-                <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              <div className="flex flex-col gap-1 py-3">
+                <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("rides.viewRidePage.completion")}
                 </dt>
                 <dd className="text-sm">
@@ -297,45 +269,45 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
               </div>
             )}
             {ride.status === "completed" && ride.traveledDistanceKm !== undefined && (
-              <div className="flex flex-col">
-                <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                  <Route className="h-4 w-4" aria-hidden="true" />
+              <div className="flex flex-col gap-1 py-3">
+                <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Route className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("rides.viewRidePage.distanceTraveled")}
                 </dt>
                 <dd className="text-sm">{formatKm(ride.traveledDistanceKm)}</dd>
               </div>
             )}
             {liveMode && ride.plannedDistanceKm !== undefined && (
-              <div className="flex flex-col">
-                <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                  <Route className="h-4 w-4" aria-hidden="true" />
+              <div className="flex flex-col gap-1 py-3">
+                <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Route className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("rides.viewRidePage.plannedDistance")}
                 </dt>
                 <dd className="text-sm">{formatKm(ride.plannedDistanceKm)}</dd>
               </div>
             )}
             {(ride.status === "completed" || liveMode) && ride.waitingMinutes !== undefined && (
-              <div className="flex flex-col">
-                <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                  <Hourglass className="h-4 w-4" aria-hidden="true" />
+              <div className="flex flex-col gap-1 py-3">
+                <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Hourglass className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("rides.viewRidePage.waitingTime")}
                 </dt>
                 <dd className="text-sm">{formatMinutes(ride.waitingMinutes)}</dd>
               </div>
             )}
             {estCompletionClock && (
-              <div className="flex flex-col">
-                <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                  <Timer className="h-4 w-4" aria-hidden="true" />
+              <div className="flex flex-col gap-1 py-3">
+                <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Timer className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("rides.viewRidePage.estCompletion")}
                 </dt>
                 <dd className="text-sm">{estCompletionClock}</dd>
               </div>
             )}
-                        {liveMode && freshnessText && (
-              <div className="flex flex-col">
-                <dt className="text-sm font-medium text-muted-foreground inline-flex items-center gap-2">
-                  <Clock className="h-4 w-4" aria-hidden="true" />
+            {liveMode && freshnessText && (
+              <div className="flex flex-col gap-1 py-3">
+                <dt className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("rides.viewRidePage.lastUpdate")}
                 </dt>
                 <dd className="text-sm">{freshnessText}</dd>
@@ -347,11 +319,11 @@ export default function RideViewPage({ scope = "all" }: RideViewPageProps = {}) 
         <div
           role="img"
           aria-label={t("rides.viewRidePage.mapAria", { id: ride.rideId })}
-          className="flex-1 min-h-[320px] md:min-h-0"
+          className="flex-1 min-h-[320px] overflow-hidden rounded-xl border border-border shadow-card md:min-h-0"
         >
           <Suspense
             fallback={
-              <div className="h-full rounded-2xl border border-border bg-muted/30 flex items-center justify-center min-h-[320px] text-sm text-muted-foreground">
+              <div className="h-full bg-muted/30 flex items-center justify-center min-h-[320px] text-sm text-muted-foreground">
                 {t("rides.loading")}
               </div>
             }

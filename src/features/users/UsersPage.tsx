@@ -1,3 +1,4 @@
+import { initialsOf } from "@/lib/initials";
 import {
   useCallback,
   useEffect,
@@ -8,8 +9,8 @@ import {
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Pencil, Plus, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Ban, CircleCheck, FileDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { StatusBadge, type StatusTone } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,9 +18,21 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/features/auth/useAuth";
 import { useDebounced } from "@/features/riders/useDebounced";
 import { stringCompare, useTableView } from "@/lib/useTableView";
-import { getAllUsers } from "@/api/users";
+import { deleteUser, getAllUsers } from "@/api/users";
+import { updateUser } from "@/api/riders";
+import { EndpointNotAvailableError } from "@/api/client";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { can } from "@/lib/permissions";
+import { downloadTablePdf } from "@/lib/pdf";
 import { mapUsersResponse } from "./mapper";
-import { downloadCsv, usersCsvFilename, usersToCsv } from "./csv";
+import {
+  downloadCsv,
+  USERS_EXPORT_HEADERS,
+  usersCsvFilename,
+  usersPdfFilename,
+  usersToCsv,
+  usersToExportRows,
+} from "./csv";
 import type { UserRole, UsersRow } from "./types";
 
 type RoleTab = "all" | UserRole;
@@ -38,9 +51,9 @@ const PAGE_SIZES = [10, 25, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZES)[number];
 const DEFAULT_PAGE_SIZE: PageSize = 10;
 
-const ROLE_BADGE: Record<UserRole, string> = {
-  Admin: "bg-primary/10 text-primary border-primary/25",
-  Operator: "bg-warning-muted text-warning border-warning/25",
+const ROLE_TONE: Record<UserRole, StatusTone> = {
+  Admin: "brand",
+  Operator: "info",
 };
 
 function formatJoined(iso: string): string {
@@ -81,6 +94,10 @@ export default function UsersPage() {
   const routerLocation = useLocation();
   const { profile } = useAuth();
   const callerRole = profile?.role ?? "";
+  const canManage = can(callerRole, "manageStaffUsers");
+  const [pending, setPending] = useState<{ action: "disable" | "enable" | "delete"; row: UsersRow } | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialParams = useRef(searchParams).current;
 
@@ -193,6 +210,55 @@ export default function UsersPage() {
     downloadCsv(csv, usersCsvFilename(roleTab));
   };
 
+  const handleExportPdf = () => {
+    void downloadTablePdf({
+      title: "Rydee staff users",
+      subtitle: `${filteredRows.length} users · exported ${new Date().toLocaleString("en-GB")}`,
+      headers: USERS_EXPORT_HEADERS,
+      rows: usersToExportRows(filteredRows),
+      filename: usersPdfFilename(roleTab),
+      numbered: true,
+    });
+  };
+
+  const isSelf = (row: UsersRow) =>
+    !!profile?.phone && row.phone.replace(/\D/g, "") === profile.phone.replace(/\D/g, "");
+
+  const runPendingAction = async () => {
+    if (!pending) return;
+    const { action, row } = pending;
+    setActionBusy(true);
+    setNotice(null);
+    try {
+      if (action === "delete") {
+        await deleteUser(row.phone);
+        setRows((prev) => (prev ? prev.filter((r) => r.id !== row.id) : prev));
+        setNotice({ tone: "success", text: t("users.feedback.deleted", { name: row.name }) });
+      } else {
+        const nextStatus = action === "disable" ? "disabled" : "active";
+        await updateUser(row.phone, null, { activationStatus: action === "disable" ? "BLOCKED" : "ACTIVE" });
+        setRows((prev) =>
+          prev ? prev.map((r) => (r.id === row.id ? { ...r, status: nextStatus } : r)) : prev,
+        );
+        setNotice({
+          tone: "success",
+          text: t(action === "disable" ? "users.feedback.disabled" : "users.feedback.enabled", { name: row.name }),
+        });
+      }
+    } catch (err) {
+      setNotice({
+        tone: "error",
+        text:
+          err instanceof EndpointNotAvailableError
+            ? t("common.needsBackend", { endpoint: err.endpoint })
+            : t("users.feedback.failed"),
+      });
+    } finally {
+      setActionBusy(false);
+      setPending(null);
+    }
+  };
+
   const handleRowKeyDown = (
     e: ReactKeyboardEvent<HTMLTableRowElement>,
     row: UsersRow,
@@ -237,7 +303,7 @@ export default function UsersPage() {
           <div
             role="tablist"
             aria-label={t("users.filterByRole")}
-            className="flex flex-wrap gap-1 bg-muted rounded-lg p-1"
+            className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/60 p-1"
           >
             {ROLE_TABS.map((tab) => {
               const selected = roleTab === tab;
@@ -258,7 +324,7 @@ export default function UsersPage() {
                 >
                   {roleTabLabel(tab)}
                   <span
-                    className="ms-2 inline-flex items-center justify-center rounded-full bg-background px-1.5 text-xs font-semibold text-muted-foreground"
+                    className="ms-2 inline-flex min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-xs font-semibold tabular-nums text-muted-foreground"
                     data-testid={`fqa-users-count-${tab}`}
                   >
                     {counts[tab]}
@@ -297,7 +363,17 @@ export default function UsersPage() {
           >
             {t("users.exportCsv")}
           </Button>
-          {callerRole === "Admin" && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportPdf}
+            disabled={filteredRows.length === 0}
+          >
+            <FileDown size={14} aria-hidden="true" className="me-1" />
+            {t("common.exportPdf")}
+          </Button>
+          {canManage && (
             <Button
               type="button"
               size="sm"
@@ -312,7 +388,26 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <Card className="rounded-2xl border-border overflow-hidden p-0">
+      {!canManage && (
+        <p className="rounded-lg border border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+          {t("users.readOnlyNotice")}
+        </p>
+      )}
+      {notice && (
+        <div
+          role={notice.tone === "error" ? "alert" : "status"}
+          className={
+            "rounded-lg border px-4 py-2.5 text-sm " +
+            (notice.tone === "error"
+              ? "border-destructive/25 bg-destructive/10 text-destructive"
+              : "border-success/25 bg-success-muted text-success")
+          }
+        >
+          {notice.text}
+        </div>
+      )}
+
+      <Card className="gap-0 rounded-xl border-border overflow-hidden p-0">
         {loading && (
           <div
             role="status"
@@ -360,8 +455,11 @@ export default function UsersPage() {
           <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
             <table className="w-full text-sm">
               <caption className="sr-only">{t("users.caption")}</caption>
-              <thead className="sticky top-0 z-10 bg-switch-background text-start text-[11px] font-semibold text-foreground/70 uppercase tracking-wider shadow-[inset_0_-1px_0_hsl(var(--border))]">
+              <thead className="sticky top-0 z-10 bg-muted text-start text-[11px] font-semibold text-muted-foreground uppercase tracking-wider shadow-[inset_0_-1px_0_var(--border)]">
                 <tr>
+                  <th scope="col" className="ps-6 pe-2 py-3 w-14">
+                    {t("common.serialNo")}
+                  </th>
                   <SortableTh sortKey="name" ariaSort={ariaSortFor("name")} onSort={toggleSort} minWidth="min-w-[160px]">
                     {t("users.columns.name")}
                   </SortableTh>
@@ -374,40 +472,56 @@ export default function UsersPage() {
                   <SortableTh sortKey="role" ariaSort={ariaSortFor("role")} onSort={toggleSort} minWidth="min-w-[110px]">
                     {t("users.columns.role")}
                   </SortableTh>
+                  <th scope="col" className="px-4 py-3 min-w-[100px]">
+                    {t("users.columns.status")}
+                  </th>
                   <SortableTh sortKey="joinedAt" ariaSort={ariaSortFor("joinedAt")} onSort={toggleSort} minWidth="min-w-[100px]">
                     {t("users.columns.joined")}
                   </SortableTh>
-                  <th scope="col" className="ps-4 pe-6 py-3 w-[80px] text-center">
+                  <th scope="col" className="ps-4 pe-6 py-3 min-w-[80px] text-center">
                     {t("users.columns.actions")}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {pageRows.map((r) => (
+                {pageRows.map((r, i) => (
                   <tr
                     key={r.id}
-                    tabIndex={0}
-                    aria-label={t("users.rowOpenAria", { name: r.name || "user" })}
-                    onClick={() => goEdit(r)}
-                    onKeyDown={(e) => handleRowKeyDown(e, r)}
-                    className="h-12 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                    tabIndex={canManage ? 0 : undefined}
+                    aria-label={canManage ? t("users.rowOpenAria", { name: r.name || "user" }) : undefined}
+                    onClick={canManage ? () => goEdit(r) : undefined}
+                    onKeyDown={canManage ? (e) => handleRowKeyDown(e, r) : undefined}
+                    className={
+                      "h-12 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+                      (canManage ? "cursor-pointer" : "")
+                    }
                   >
-                    <th scope="row" className="ps-6 pe-4 py-3 font-medium text-foreground text-start">
-                      {r.name || "—"}
+                    <td className="ps-6 pe-2 py-3 text-xs tabular-nums text-muted-foreground">{pageStart + i + 1}</td>
+                    <th scope="row" className="px-4 py-3 font-medium text-foreground text-start">
+                      <span className="flex items-center gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground"
+                        >
+                          {initialsOf(r.name)}
+                        </span>
+                        <span>{r.name || "—"}</span>
+                      </span>
                     </th>
                     <td className="px-4 py-3 font-mono text-xs">{r.phone || "—"}</td>
                     <td className="px-4 py-3">{r.email || "—"}</td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant="outline"
-                        className={`gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ${ROLE_BADGE[r.role]}`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
-                        {t(`users.roles.${r.role}`)}
-                      </Badge>
+                      <StatusBadge tone={ROLE_TONE[r.role]}>{t(`users.roles.${r.role}`)}</StatusBadge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge tone={r.status === "disabled" ? "danger" : "success"}>
+                        {t(`users.status.${r.status}`)}
+                      </StatusBadge>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">{formatJoined(r.joinedAt)}</td>
                     <td className="ps-4 pe-6 py-3 text-center">
+                      {canManage ? (
+                      <div className="flex items-center justify-center gap-1">
                       <Button
                         type="button"
                         variant="ghost"
@@ -424,6 +538,46 @@ export default function UsersPage() {
                       >
                         <Pencil size={14} aria-hidden="true" />
                       </Button>
+                      {!isSelf(r) && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPending({ action: r.status === "disabled" ? "enable" : "disable", row: r });
+                            }}
+                            aria-label={t(r.status === "disabled" ? "users.actions.enableAria" : "users.actions.disableAria", { name: r.name || "user" })}
+                            title={t(r.status === "disabled" ? "users.actions.enable" : "users.actions.disable")}
+                            className="h-8 w-8 p-0"
+                          >
+                            {r.status === "disabled" ? (
+                              <CircleCheck size={14} aria-hidden="true" />
+                            ) : (
+                              <Ban size={14} aria-hidden="true" />
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPending({ action: "delete", row: r });
+                            }}
+                            aria-label={t("users.actions.deleteAria", { name: r.name || "user" })}
+                            title={t("users.actions.delete")}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </Button>
+                        </>
+                      )}
+                      </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -447,7 +601,7 @@ export default function UsersPage() {
                 id="fqa-users-page-size"
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                className="h-8 rounded-md border border-input bg-card px-2 text-xs"
               >
                 {PAGE_SIZES.map((n) => (
                   <option key={n} value={n}>
@@ -485,6 +639,20 @@ export default function UsersPage() {
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => {
+          if (!open && !actionBusy) setPending(null);
+        }}
+        title={pending ? t(`users.confirm.${pending.action}.title`, { name: pending.row.name }) : ""}
+        description={pending ? t(`users.confirm.${pending.action}.description`, { name: pending.row.name }) : ""}
+        confirmLabel={pending ? t(`users.actions.${pending.action}`) : ""}
+        cancelLabel={t("common.cancel")}
+        destructive={pending?.action !== "enable"}
+        busy={actionBusy}
+        onConfirm={runPendingAction}
+      />
     </div>
   );
 }
@@ -503,12 +671,12 @@ function SortableTh({ sortKey, ariaSort, onSort, minWidth, children }: SortableT
     <th
       scope="col"
       aria-sort={ariaSort}
-      className={`${sortKey === "name" ? "ps-6 pe-4" : "px-4"} py-3 ${minWidth}`}
+      className={`px-4 py-3 ${minWidth}`}
     >
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
       >
         {children}
         <span aria-hidden="true" className={ariaSort === "none" ? "opacity-40" : "text-foreground"}>

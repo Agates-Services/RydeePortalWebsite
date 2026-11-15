@@ -20,6 +20,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { StatusBadge } from "@/components/StatusBadge";
+import { initialsOf } from "@/lib/initials";
 import type { Profile } from "@/types/profile";
 
 type TabKey = "profile" | "settings";
@@ -32,6 +34,7 @@ function toTitleCaseRole(role: string): "Rider" | "Admin" | "Operator" | "Custom
   if (l === "customer") return "Customer";
   return role;
 }
+
 
 function isEndpointGap(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
@@ -179,7 +182,26 @@ export default function ProfilePage() {
   const panelId = (k: TabKey) => `fqa-account-panel-${k}`;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6 lg:p-8">
+      <div className="flex flex-wrap items-center gap-4">
+        <span
+          aria-hidden="true"
+          className="flex size-16 items-center justify-center rounded-2xl bg-accent text-xl font-semibold text-accent-foreground"
+        >
+          {initialsOf(profile?.name)}
+        </span>
+        <div className="min-w-0">
+          <h2 className="truncate text-xl font-semibold tracking-tight md:text-2xl">
+            {profile?.name || t("common.account")}
+          </h2>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <StatusBadge tone="brand" dot={false}>
+              {role}
+            </StatusBadge>
+            {profile?.phone && <span className="font-mono text-xs">{profile.phone}</span>}
+          </div>
+        </div>
+      </div>
       <div role="tablist" aria-label={t("account.profile.title")} className="flex gap-1 border-b border-border">
         {(["profile", "settings"] as TabKey[]).map((k) => (
           <button
@@ -191,7 +213,7 @@ export default function ProfilePage() {
             aria-controls={panelId(k)}
             tabIndex={tab === k ? 0 : -1}
             onClick={() => setTab(k)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === k
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -208,7 +230,7 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>{t("account.profile.title")}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="fqa-account-name">{t("account.profile.fields.name")}</Label>
                 <Input
@@ -261,17 +283,17 @@ export default function ProfilePage() {
               )}
 
               {saved && (
-                <p role="status" className="text-sm text-success">
+                <p role="status" className="text-sm text-success sm:col-span-2">
                   {t("account.profile.saved")}
                 </p>
               )}
               {saveError && (
-                <p role="alert" className="text-sm text-destructive">
+                <p role="alert" className="text-sm text-destructive sm:col-span-2">
                   {saveError}
                 </p>
               )}
 
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end sm:col-span-2">
                 <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
                   {t("account.profile.cancel")}
                 </Button>

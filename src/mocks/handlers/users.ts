@@ -9,6 +9,7 @@ interface UserProfile {
   area?: string;
   address?: string;
   dateOfJoining?: string;
+  activationStatus?: string;
 }
 
 interface UserEnvelope {
@@ -61,6 +62,13 @@ const operatorSeeds: UserProfile[] = [
     dateOfJoining: "2026-04-05",
   },
 ];
+
+export function patchStaffUser(phoneDigits: string, patch: Record<string, unknown>): void {
+  for (const seed of [...adminSeeds, ...operatorSeeds]) {
+    if (seed.phone.replace(/\D/g, "") !== phoneDigits) continue;
+    if (typeof patch.activationStatus === "string") seed.activationStatus = patch.activationStatus.toUpperCase();
+  }
+}
 
 function toEnvelope(role: "Admin" | "Operator", profile: UserProfile): UserEnvelope {
   return { role, profile };

@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { Eye } from "lucide-react";
 import type { Ride, RideStatus, RideTab, RideSortKey, RideSortDir } from "@/api/rides";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
   ARRIVED_RETENTION_MS,
@@ -10,15 +12,16 @@ import {
   isStalled,
   minutesBetween,
 } from "./RidesTable.helpers";
+import { rideDate } from "../export";
 
-const STATUS_BG: Record<RideStatus, string> = {
-  going_to_pick: "#b45309",
-  waiting_for_ride: "#0369a1",
-  in_transit: "#15803d",
-  arrived: "#6b7280",
-  scheduled: "#6d28d9",
-  completed: "#15803d",
-  canceled: "#dc2626",
+const STATUS_TONE: Record<RideStatus, StatusTone> = {
+  going_to_pick: "warning",
+  waiting_for_ride: "info",
+  in_transit: "brand",
+  arrived: "neutral",
+  scheduled: "scheduled",
+  completed: "success",
+  canceled: "danger",
 };
 
 const STATUS_KEY: Record<RideStatus, string> = {
@@ -34,13 +37,24 @@ const STATUS_KEY: Record<RideStatus, string> = {
 export function StatusPill({ status }: { status: RideStatus }) {
   const { t } = useTranslation();
   return (
-    <Badge
-      className="gap-1.5 rounded-full border-transparent px-2.5 py-0.5 text-xs font-medium text-white"
-      style={{ backgroundColor: STATUS_BG[status] }}
-    >
-      {t(STATUS_KEY[status])}
-    </Badge>
+    <StatusBadge tone={STATUS_TONE[status]}>{t(STATUS_KEY[status])}</StatusBadge>
   );
+}
+
+export type RidesTableTab = RideTab | "all";
+
+function formatDateTime(iso: string | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function tabOfRide(ride: Ride): RideTab {
+  if (ride.status === "scheduled") return "upcoming";
+  if (ride.status === "completed") return "completed";
+  if (ride.status === "canceled") return "canceled";
+  return "live";
 }
 
 function TwoLine({ top, bottom }: { top: string; bottom: string }) {
@@ -54,7 +68,9 @@ function TwoLine({ top, bottom }: { top: string; bottom: string }) {
 
 interface RowProps {
   ride: Ride;
-  tab: RideTab;
+  tab: RidesTableTab;
+  serial?: number;
+  actions?: ReactNode;
   stalled: boolean;
   arrivedLeaving: string | null;
   compact: boolean;
@@ -62,19 +78,20 @@ interface RowProps {
   viewPathPrefix: string;
 }
 
-function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact, hideRider, viewPathPrefix }: RowProps) {
+function DesktopRow({ ride, tab, serial, actions, stalled, arrivedLeaving, compact, hideRider, viewPathPrefix }: RowProps) {
   const { t } = useTranslation();
-  const canView = tab === "live" || tab === "completed";
+  const rowTab = tab === "all" ? tabOfRide(ride) : tab;
+  const canView = rowTab === "live" || rowTab === "completed";
   const elapsed = tab === "live" ? minutesBetween(ride.startedAt, new Date().toISOString()) : null;
   const dur = tab === "completed" ? minutesBetween(ride.startedAt, ride.completedAt) : null;
   const rowClass =
-    "h-14 " + (stalled ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-muted/30");
+    "h-14 transition-colors " + (stalled ? "bg-warning-muted" : "hover:bg-muted/50");
   const statusCell = (
     <td className="px-4 py-2">
       <div className="flex items-center gap-2">
         <StatusPill status={ride.status} />
         {stalled && (
-          <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+          <span className="text-[11px] font-medium text-warning">
             {t("rides.stalled")}
           </span>
         )}
@@ -88,7 +105,7 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact, hideRider, vi
     <td className="ps-6 pe-4 py-2 font-mono text-xs">
       <Link
         to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
-        className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        className="font-medium text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
       >
         {ride.rideId}
       </Link>
@@ -105,6 +122,9 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact, hideRider, vi
       }
       className={rowClass}
     >
+      {serial !== undefined && (
+        <td className="ps-6 pe-2 py-2 text-xs tabular-nums text-muted-foreground">{serial}</td>
+      )}
       {idCell}
       {compact && statusCell}
       {!hideRider && <td className="px-4 py-2"><TwoLine top={ride.rider.name} bottom={ride.rider.phone} /></td>}
@@ -135,35 +155,54 @@ function DesktopRow({ ride, tab, stalled, arrivedLeaving, compact, hideRider, vi
           {ride.cancelReason && <span className="ms-2">· {ride.cancelReason}</span>}
         </td>
       )}
+      {tab === "all" && !compact && (
+        <td className="px-4 py-2 whitespace-nowrap text-xs text-muted-foreground">
+          {formatDateTime(rideDate(ride))}
+        </td>
+      )}
       {!compact && (
-        <td className="ps-4 pe-6 py-2 text-center">
-          {canView ? (
-            <Button asChild type="button" variant="outline" size="sm">
-              <Link
-                to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
-                aria-label={t("rides.viewRideAria", { id: ride.rideId })}
-              >
-                {t("rides.viewRide")}
-              </Link>
-            </Button>
-          ) : (
-            <span aria-hidden="true">—</span>
-          )}
+        <td className="ps-4 pe-6 py-2">
+          <div className="flex items-center justify-center gap-1">
+            {canView && actions ? (
+              <Button asChild type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Link
+                  to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
+                  aria-label={t("rides.viewRideAria", { id: ride.rideId })}
+                  title={t("rides.viewRide")}
+                >
+                  <Eye size={14} aria-hidden="true" />
+                </Link>
+              </Button>
+            ) : canView ? (
+              <Button asChild type="button" variant="outline" size="sm">
+                <Link
+                  to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
+                  aria-label={t("rides.viewRideAria", { id: ride.rideId })}
+                >
+                  {t("rides.viewRide")}
+                </Link>
+              </Button>
+            ) : (
+              !actions && <span aria-hidden="true">—</span>
+            )}
+            {actions}
+          </div>
         </td>
       )}
     </tr>
   );
 }
 
-function MobileCard({ ride, tab, stalled, arrivedLeaving, compact, hideRider, viewPathPrefix }: RowProps) {
+function MobileCard({ ride, tab, serial, actions, stalled, arrivedLeaving, compact, hideRider, viewPathPrefix }: RowProps) {
   const { t } = useTranslation();
-  const canView = tab === "live" || tab === "completed";
+  const rowTab = tab === "all" ? tabOfRide(ride) : tab;
+  const canView = rowTab === "live" || rowTab === "completed";
   return (
     <div
       className={
-        "rounded-lg border p-3 flex flex-col gap-2 " +
+        "rounded-xl border p-3.5 flex flex-col gap-2 shadow-card " +
         (stalled
-          ? "border-amber-500 border-s-4 bg-amber-50 dark:bg-amber-950/20"
+          ? "border-warning/60 border-s-4 bg-warning-muted"
           : "border-border bg-card")
       }
     >
@@ -171,12 +210,15 @@ function MobileCard({ ride, tab, stalled, arrivedLeaving, compact, hideRider, vi
         {compact ? (
           <Link
             to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
-            className="font-mono text-xs hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            className="font-mono text-xs font-medium text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           >
             {ride.rideId}
           </Link>
         ) : (
-          <span className="font-mono text-xs">{ride.rideId}</span>
+          <span className="font-mono text-xs">
+            {serial !== undefined && <span className="me-2 text-muted-foreground">#{serial}</span>}
+            {ride.rideId}
+          </span>
         )}
         <StatusPill status={ride.status} />
       </div>
@@ -207,19 +249,25 @@ function MobileCard({ ride, tab, stalled, arrivedLeaving, compact, hideRider, vi
         {tab === "canceled" && ride.canceledBy && !compact && (
           <span>{t("rides.columns.canceledBy")}: {t(`rides.canceledBy.${ride.canceledBy}`)}</span>
         )}
-        {stalled && <span className="text-amber-700 dark:text-amber-300 font-medium">{t("rides.stalled")}</span>}
+        {tab === "all" && !compact && rideDate(ride) && (
+          <span>{t("rides.columns.date")}: {formatDateTime(rideDate(ride))}</span>
+        )}
+        {stalled && <span className="text-warning font-medium">{t("rides.stalled")}</span>}
         {arrivedLeaving && <span>{arrivedLeaving}</span>}
       </div>
-      {canView && !compact && (
-        <div className="pt-1">
-          <Button asChild type="button" variant="outline" size="sm">
-            <Link
-              to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
-              aria-label={t("rides.viewRideAria", { id: ride.rideId })}
-            >
-              {t("rides.viewRide")}
-            </Link>
-          </Button>
+      {!compact && (canView || actions) && (
+        <div className="flex items-center gap-1 pt-1">
+          {canView && (
+            <Button asChild type="button" variant="outline" size="sm">
+              <Link
+                to={`${viewPathPrefix}/${encodeURIComponent(ride.rideId)}`}
+                aria-label={t("rides.viewRideAria", { id: ride.rideId })}
+              >
+                {t("rides.viewRide")}
+              </Link>
+            </Button>
+          )}
+          {actions}
         </div>
       )}
     </div>
@@ -241,7 +289,7 @@ function SortableTh({ sortKey, ariaSort, onSort, className, label }: SortableThP
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
       >
         {label}
         <span aria-hidden="true" className={ariaSort === "none" ? "opacity-40" : "text-foreground"}>
@@ -255,7 +303,7 @@ function SortableTh({ sortKey, ariaSort, onSort, className, label }: SortableThP
 function PlainTh({ className, label }: { className?: string; label: string }) {
   return (
     <th scope="col" className={className}>
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground/70">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
     </th>
@@ -264,7 +312,9 @@ function PlainTh({ className, label }: { className?: string; label: string }) {
 
 export interface RidesTableProps {
   rides: Ride[];
-  tab: RideTab;
+  tab: RidesTableTab;
+  startIndex?: number;
+  renderActions?: (ride: Ride) => ReactNode;
   now: number;
   caption: string;
   sort?: { key: RideSortKey; dir: RideSortDir };
@@ -286,6 +336,8 @@ export function RidesTable({
   arrivedFirstSeen,
   hideRiderColumn = false,
   viewPathPrefix = "/admin/rides",
+  startIndex,
+  renderActions,
 }: RidesTableProps) {
   const { t } = useTranslation();
   const sortable = sort !== undefined && onSort !== undefined;
@@ -320,39 +372,43 @@ export function RidesTable({
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <caption className="sr-only">{caption}</caption>
-          <thead className="sticky top-0 z-10 bg-switch-background text-start text-[11px] font-semibold text-foreground/70 uppercase tracking-wider shadow-[inset_0_-1px_0_hsl(var(--border))]">
+          <thead className="border-b border-border bg-muted/50 text-start text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <tr>
+              {startIndex !== undefined && (
+                <th scope="col" className="ps-6 pe-2 py-3 w-14">{t("common.serialNo")}</th>
+              )}
               {renderTh("rideId", "ps-6 pe-4 py-3 min-w-[110px]", t("rides.columns.rideId"))}
               {compact && renderTh("status", "px-4 py-3 min-w-[130px]", t("rides.columns.status"))}
               {!hideRiderColumn && renderTh("riderName", "px-4 py-3 min-w-[150px]", t("rides.columns.rider"))}
               {!compact && renderTh("customerName", "px-4 py-3 min-w-[150px]", t("rides.columns.customer"))}
-              {renderTh("pickupLabel", "px-4 py-3 min-w-[140px]", t("rides.columns.pickup"))}
-              {renderTh("dropoffLabel", "px-4 py-3 min-w-[140px]", t("rides.columns.dropoff"))}
+              {renderTh("pickupLabel", "px-4 py-3 min-w-[120px]", t("rides.columns.pickup"))}
+              {renderTh("dropoffLabel", "px-4 py-3 min-w-[120px]", t("rides.columns.dropoff"))}
               {!compact && renderTh("status", "px-4 py-3 min-w-[130px]", t("rides.columns.status"))}
               {!compact && renderTh("fareAmount", "px-4 py-3 min-w-[100px]", t("rides.columns.fare"))}
               {tab === "live" && renderTh("startedAt", "px-4 py-3 min-w-[90px]", t("rides.columns.elapsed"))}
               {tab === "upcoming" && !compact && renderTh("scheduledAt", "px-4 py-3 min-w-[110px]", t("rides.columns.scheduledAt"))}
               {tab === "completed" && !compact && renderTh("completedAt", "px-4 py-3 min-w-[130px]", t("rides.columns.completedAt"))}
               {tab === "canceled" && !compact && renderTh("canceledBy", "px-4 py-3 min-w-[160px]", t("rides.columns.canceledBy"))}
-              {!compact && <th scope="col" className="ps-4 pe-6 py-3 w-[110px] text-center">{t("rides.columns.actions")}</th>}
+              {tab === "all" && !compact && <PlainTh className="px-4 py-3 min-w-[130px]" label={t("rides.columns.date")} />}
+              {!compact && <th scope="col" className="ps-4 pe-6 py-3 min-w-[110px] text-center">{t("rides.columns.actions")}</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rides.map((r) => {
+            {rides.map((r, i) => {
               const { stalled, leaving } = decorateRow(r);
               return (
-                <DesktopRow key={r.rideId} ride={r} tab={tab} stalled={stalled} arrivedLeaving={leaving} compact={compact} hideRider={hideRiderColumn} viewPathPrefix={viewPathPrefix} />
+                <DesktopRow key={r.rideId} ride={r} tab={tab} serial={startIndex !== undefined ? startIndex + i + 1 : undefined} actions={renderActions?.(r)} stalled={stalled} arrivedLeaving={leaving} compact={compact} hideRider={hideRiderColumn} viewPathPrefix={viewPathPrefix} />
               );
             })}
           </tbody>
         </table>
       </div>
 
-      <div className="md:hidden flex flex-col gap-3 p-3">
-        {rides.map((r) => {
+      <div className="md:hidden flex flex-col gap-3 p-3 bg-muted/30">
+        {rides.map((r, i) => {
           const { stalled, leaving } = decorateRow(r);
           return (
-            <MobileCard key={r.rideId} ride={r} tab={tab} stalled={stalled} arrivedLeaving={leaving} compact={compact} hideRider={hideRiderColumn} viewPathPrefix={viewPathPrefix} />
+            <MobileCard key={r.rideId} ride={r} tab={tab} serial={startIndex !== undefined ? startIndex + i + 1 : undefined} actions={renderActions?.(r)} stalled={stalled} arrivedLeaving={leaving} compact={compact} hideRider={hideRiderColumn} viewPathPrefix={viewPathPrefix} />
           );
         })}
       </div>
