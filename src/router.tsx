@@ -16,6 +16,7 @@ import { UsersRoute } from "@/features/users/routes";
 import ErrorBoundaryPage from "@/features/errors/ErrorBoundaryPage";
 import NotFoundPage from "@/features/errors/NotFoundPage";
 import ProfilePage from "@/features/account/pages/ProfilePage";
+import NotificationsPage from "@/features/notifications/NotificationsPage";
 
 export const router = createBrowserRouter([
   {
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
               { path: "admin/pending-riders", element: <Navigate to="/admin/all-riders?status=pending" replace /> },
               { path: "admin/blocked-riders", element: <Navigate to="/admin/all-riders?status=blocked" replace /> },
               { path: "admin/all-riders", element: <AllRidersRoute /> },
+              { path: "admin/riders/new", element: <RegisterPage addRiderMode backTo="/admin/all-riders" /> },
               { path: "admin/riders/:phone/edit", element: <RiderEditRedirect /> },
               { path: "admin/users", element: <UsersRoute /> },
               { path: "admin/users/:phone/edit", element: <RiderEditRoute /> },
@@ -71,7 +73,10 @@ export const router = createBrowserRouter([
           },
           {
             element: <ProtectedRoute allow={["Admin", "Operator", "Rider"]} />,
-            children: [{ path: "account/profile", element: <ProfilePage /> }],
+            children: [
+              { path: "account/profile", element: <ProfilePage /> },
+              { path: "notifications", element: <NotificationsPage /> },
+            ],
           },
         ],
       },

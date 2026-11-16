@@ -1,18 +1,14 @@
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { RIDER_STATUS_TONE } from "@/features/riders/constants";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { AllRidersRow, RiderStatus } from "@/types/rider";
+import type { AllRidersRow } from "@/types/rider";
 import { formatCnic } from "@/features/riders/cnic";
+import { initialsOf } from "@/lib/initials";
 
-const STATUS_BADGE: Record<RiderStatus, string> = {
-  active: "bg-success-muted text-success border-success/25",
-  pending: "bg-warning-muted text-warning border-warning/25",
-  blocked: "bg-destructive/10 text-destructive border-destructive/25",
-  offboarded: "bg-muted text-muted-foreground border-border",
-};
 
 function formatDate(iso: string | undefined): string {
   if (!iso) return "—";
@@ -32,6 +28,7 @@ export interface RiderDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
 
 export function RiderDetailSheet({ row, open, onOpenChange }: RiderDetailSheetProps) {
   const { t, i18n } = useTranslation();
@@ -67,8 +64,16 @@ export function RiderDetailSheet({ row, open, onOpenChange }: RiderDetailSheetPr
         className="w-full sm:max-w-md overflow-y-auto data-[state=open]:duration-0 data-[state=closed]:duration-0"
         data-testid="fqa-rider-detail-sheet"
       >
-        <SheetHeader className="flex-row items-center justify-between gap-3 space-y-0">
-          <SheetTitle>{row?.name || t("riders.detailSheet.title")}</SheetTitle>
+        <SheetHeader className="flex-row items-center justify-between gap-3 space-y-0 border-b border-border pb-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-semibold text-accent-foreground"
+            >
+              {initialsOf(row?.name)}
+            </span>
+            <SheetTitle className="truncate">{row?.name || t("riders.detailSheet.title")}</SheetTitle>
+          </div>
           {row?.phone && (
             <Button
               type="button"
@@ -86,37 +91,31 @@ export function RiderDetailSheet({ row, open, onOpenChange }: RiderDetailSheetPr
         </SheetHeader>
 
         {row && (
-          <div className="px-4 pb-6 space-y-6">
+          <div className="px-4 pb-6 space-y-5">
             <div>
-              <Badge
-                variant="outline"
-                className={`gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ${STATUS_BADGE[row.status]}`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
-                {t(`riders.common.badges.${row.status}`)}
-              </Badge>
+              <StatusBadge tone={RIDER_STATUS_TONE[row.status]}>{t(`riders.common.badges.${row.status}`)}</StatusBadge>
             </div>
 
-            <dl className="grid grid-cols-1 gap-5 text-sm">
+            <dl className="grid grid-cols-1 divide-y divide-border rounded-xl border border-border text-sm">
               {fields.map((f) => (
-                <div key={f.label} className="flex flex-col gap-1">
+                <div key={f.label} className="flex flex-col gap-1 px-4 py-3">
                   <dt
-                    className="text-xs uppercase tracking-wider text-muted-foreground"
+                    className="text-xs font-medium text-muted-foreground"
                     data-fqa-field-label
                   >
                     {f.label}
                   </dt>
                   <dd
-                    className={"text-foreground text-base " + (f.mono ? "font-mono text-sm" : "")}
+                    className={"text-foreground text-sm font-medium " + (f.mono ? "font-mono" : "")}
                     data-fqa-field-value
                   >
                     {f.value}
                   </dd>
                 </div>
               ))}
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 px-4 py-3">
                 <dt
-                  className="text-xs uppercase tracking-wider text-muted-foreground"
+                  className="text-xs font-medium text-muted-foreground"
                   data-fqa-field-label
                 >
                   {t("riders.detailSheet.documents")}

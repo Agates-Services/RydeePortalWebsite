@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getAllRiders } from "@/api/riders";
 import type { ActiveRider } from "@/types/rider";
-import { Badge } from "@/components/ui/badge";
+import { Users } from "lucide-react";
 
 const LiveMap = lazy(() => import("./LiveMap"));
 
@@ -61,30 +61,34 @@ export default function ActiveRiders() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <Badge className="bg-card border-border text-muted-foreground gap-2 px-4 py-2 text-sm font-medium rounded-full">
-          {t("riders.active.total")} <strong className="text-foreground">{activeCount}</strong>
-        </Badge>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-card">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-success-muted text-success">
+          <Users className="size-[18px]" aria-hidden="true" />
+        </span>
+        <div className="flex flex-col leading-tight">
+          <span className="text-xs text-muted-foreground">{t("riders.active.total")}</span>
+          <strong className="text-xl font-semibold tabular-nums text-foreground">{activeCount}</strong>
+        </div>
         {!loading && riders.length < activeCount ? (
           <span className="text-xs text-muted-foreground" aria-live="polite">
             {t("riders.active.reporting", { located: riders.length, total: activeCount })}
           </span>
         ) : null}
-        <Badge
-          className="ms-auto bg-[color:var(--success-muted)] text-[color:var(--success)] border-[color:var(--success)]/25 gap-2 px-3 py-1.5 text-xs font-semibold rounded-full"
+        <span
+          className="ms-auto inline-flex items-center gap-2 rounded-full bg-success-muted px-3 py-1.5 text-xs font-semibold text-success"
           aria-live="polite"
         >
           <span className="relative flex h-2 w-2" aria-hidden="true">
-            <span className="motion-reduce:hidden animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-[color:var(--success)]" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[color:var(--success)]" />
+            <span className="motion-reduce:hidden animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-success" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
           </span>
           {t("riders.active.live")}
-        </Badge>
+        </span>
       </div>
 
       <div
         dir="ltr"
-        className="flex-1 relative rounded-xl overflow-hidden border border-border isolate"
+        className="flex-1 relative rounded-xl overflow-hidden border border-border shadow-card isolate"
         style={{ minHeight: 0 }}
       >
         {loading ? (

@@ -1,3 +1,4 @@
+import { initialsOf } from "@/lib/initials";
 import {
   useCallback,
   useEffect,
@@ -12,14 +13,24 @@ import { getAllRiders } from "@/api/riders";
 import type { AllRidersRow, RiderStatus } from "@/types/rider";
 import { formatCnic } from "@/features/riders/cnic";
 import { mapAllRidersResponse } from "@/features/riders/mapper";
-import { csvFilename, downloadCsv, ridersToCsv } from "@/features/riders/csv";
+import {
+  CSV_HEADERS,
+  csvFilename,
+  downloadCsv,
+  pdfFilename,
+  ridersToCsv,
+  ridersToExportRows,
+} from "@/features/riders/csv";
 import { RiderDetailSheet } from "@/features/riders/RiderDetailSheet";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Search } from "lucide-react";
+import { FileDown, Pencil, Plus, Search } from "lucide-react";
+import { downloadTablePdf } from "@/lib/pdf";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/features/auth/useAuth";
 import {
   Select,
   SelectContent,
@@ -27,9 +38,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { KARACHI_AREAS } from "@/features/riders/constants";
+import { KARACHI_AREAS, RIDER_STATUS_TONE } from "@/features/riders/constants";
 import { useDebounced } from "@/features/riders/useDebounced";
 import { stringCompare, useTableView } from "@/lib/useTableView";
+
+const CSV_STATUS_NAME: Record<string, string> = {
+  active: "Active",
+  pending: "Pending",
+  blocked: "Blocked",
+  offboarded: "Offboarded",
+};
 
 type StatusTab = "all" | RiderStatus;
 
@@ -46,12 +64,6 @@ interface SortState {
 const DEFAULT_SORT: SortState = { key: "joinedAt", dir: "desc" };
 
 const STATUS_TABS: readonly StatusTab[] = ["all", "active", "pending", "blocked", "offboarded"];
-const STATUS_BADGE: Record<RiderStatus, string> = {
-  active: "bg-success-muted text-success border-success/25",
-  pending: "bg-warning-muted text-warning border-warning/25",
-  blocked: "bg-destructive/10 text-destructive border-destructive/25",
-  offboarded: "bg-muted text-muted-foreground border-border",
-};
 
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZES)[number];
@@ -122,6 +134,7 @@ const AREA_ITEMS = KARACHI_AREAS.map((a) => (
 export default function AllRiders() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const tabLabel = (tab: StatusTab): string =>
     tab === "all" ? t("riders.common.tabs.all") : t(`riders.common.badges.${tab}`);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -285,6 +298,17 @@ export default function AllRiders() {
     downloadCsv(csv, csvFilename(statusTab));
   };
 
+  const handleExportPdf = () => {
+    void downloadTablePdf({
+      title: `Rydee riders: ${statusTab === "all" ? "All" : CSV_STATUS_NAME[statusTab]}`,
+      subtitle: `${filteredRows.length} riders · exported ${new Date().toLocaleString("en-GB")}`,
+      headers: CSV_HEADERS,
+      rows: ridersToExportRows(filteredRows),
+      filename: pdfFilename(statusTab),
+      numbered: true,
+    });
+  };
+
   const handleRowKeyDown = (e: ReactKeyboardEvent<HTMLTableRowElement>, row: AllRidersRow) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -321,7 +345,7 @@ export default function AllRiders() {
           <div
             role="tablist"
             aria-label={t("riders.common.filterByStatus")}
-            className="flex flex-wrap gap-1 bg-muted rounded-lg p-1"
+            className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/60 p-1"
           >
             {STATUS_TABS.map((tab) => {
               const selected = statusTab === tab;
@@ -342,7 +366,7 @@ export default function AllRiders() {
                 >
                   {tabLabel(tab)}
                   <span
-                    className="ms-2 inline-flex items-center justify-center rounded-full bg-background px-1.5 text-xs font-semibold text-muted-foreground"
+                    className="ms-2 inline-flex min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-xs font-semibold tabular-nums text-muted-foreground"
                     data-testid={`fqa-count-${tab}`}
                   >
                     {counts[tab]}
@@ -393,9 +417,25 @@ export default function AllRiders() {
         >
           {t("riders.all.exportCsv")}
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleExportPdf}
+          disabled={filteredRows.length === 0}
+        >
+          <FileDown size={14} aria-hidden="true" className="me-1" />
+          {t("common.exportPdf")}
+        </Button>
+        {can(profile?.role, "addRider") && (
+          <Button type="button" size="sm" onClick={() => navigate("/admin/riders/new")}>
+            <Plus size={14} aria-hidden="true" className="me-1" />
+            {t("riders.all.addRider")}
+          </Button>
+        )}
       </div>
 
-      <Card className="rounded-2xl border-border overflow-hidden p-0">
+      <Card className="gap-0 rounded-xl border-border overflow-hidden p-0">
         {loading && (
           <div
             role="status"
@@ -445,8 +485,11 @@ export default function AllRiders() {
               <caption className="sr-only">{t("riders.all.caption")}</caption>
               {/* Explicit background and inset border on the sticky header keep
                     scrolling row content from bleeding through underneath it. */}
-              <thead className="sticky top-0 z-10 bg-switch-background text-start text-[11px] font-semibold text-foreground/70 uppercase tracking-wider shadow-[inset_0_-1px_0_hsl(var(--border))]">
+              <thead className="sticky top-0 z-10 bg-muted text-start text-[11px] font-semibold text-muted-foreground uppercase tracking-wider shadow-[inset_0_-1px_0_var(--border)]">
                 <tr>
+                  <th scope="col" className="ps-6 pe-2 py-3 w-14">
+                    {t("common.serialNo")}
+                  </th>
                   <SortableTh
                     sortKey="name"
                     ariaSort={ariaSortFor("name")}
@@ -501,33 +544,38 @@ export default function AllRiders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {pageRows.map((r) => (
+                {pageRows.map((r, i) => (
                   <tr
                     key={r.id}
                     tabIndex={0}
                     aria-label={t("riders.common.rowOpenDetails", { name: r.name || "rider" })}
                     onClick={(e) => openRow(r, e.currentTarget)}
                     onKeyDown={(e) => handleRowKeyDown(e, r)}
-                    className="h-12 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                    className="h-12 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                   >
+                    <td className="ps-6 pe-2 py-3 text-xs tabular-nums text-muted-foreground">
+                      {pageStart + i + 1}
+                    </td>
                     <th
                       scope="row"
-                      className="ps-6 pe-4 py-3 font-medium text-foreground text-start"
+                      className="px-4 py-3 font-medium text-foreground text-start"
                     >
-                      {r.name || "—"}
+                      <span className="flex items-center gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground"
+                        >
+                          {initialsOf(r.name)}
+                        </span>
+                        <span>{r.name || "—"}</span>
+                      </span>
                     </th>
                     <td className="px-4 py-3 font-mono text-xs">{r.phone || "—"}</td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {r.cnic ? formatCnic(r.cnic) : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant="outline"
-                        className={`gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ${STATUS_BADGE[r.status]}`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
-                        {t(`riders.common.badges.${r.status}`)}
-                      </Badge>
+                      <StatusBadge tone={RIDER_STATUS_TONE[r.status]}>{t(`riders.common.badges.${r.status}`)}</StatusBadge>
                     </td>
                     <td className="px-4 py-3">{r.area || "—"}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{formatJoined(r.joinedAt)}</td>
@@ -571,7 +619,7 @@ export default function AllRiders() {
                 id="fqa-page-size"
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                className="h-8 rounded-md border border-input bg-card px-2 text-xs"
               >
                 {PAGE_SIZES.map((n) => (
                   <option key={n} value={n}>
@@ -628,12 +676,12 @@ function SortableTh({ sortKey, ariaSort, onSort, minWidth, children }: SortableT
     <th
       scope="col"
       aria-sort={ariaSort}
-      className={`${sortKey === "name" ? "ps-6 pe-4" : "px-4"} py-3 ${minWidth}`}
+      className={`px-4 py-3 ${minWidth}`}
     >
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
       >
         {children}
         <span aria-hidden="true" className={ariaSort === "none" ? "opacity-40" : "text-foreground"}>

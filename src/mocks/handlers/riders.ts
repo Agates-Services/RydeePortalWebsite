@@ -4,6 +4,7 @@ import {
   API_GET_ALL_RIDERS_URL,
   API_UPDATE_USER_URL,
 } from "@/api/riders";
+import { patchStaffUser } from "./users";
 
 interface RiderDocuments {
   cnic: string | null;
@@ -178,6 +179,7 @@ export const ridersHandlers = [
     for (const target of targets) {
       applyPatch(target.profile, patch);
     }
+    if (key) patchStaffUser(key, patch);
     return HttpResponse.json({
       message: "User profile patched successfully",
       updatedFields: { profile: patch },

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -10,10 +10,15 @@ import {
   Star,
   Circle,
   CheckCircle2,
+  MapPin,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/StatCard";
 import { RatingStars } from "@/components/RatingStars";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { StatusBadge } from "@/components/StatusBadge";
+import { RidesTable } from "@/features/rides/components/RidesTable";
 import { getRides, type Ride } from "@/api/rides";
 import type { Profile } from "@/types/profile";
 import { deriveRiderStats, acceptanceRate } from "./riderStats";
@@ -68,24 +73,29 @@ export default function RiderDashboard({ profile }: Props) {
 
   const openMyRides = () => navigate("/rider/rides");
 
-  return (
-    <main className="p-4 md:p-6 flex flex-col gap-4 md:gap-6">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          {t("dashboards.rider.welcome", { name: profile?.name ?? "" })}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">{t("dashboards.rider.subhead")}</p>
-      </div>
+  const recent = rides.slice(0, 5);
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+  return (
+    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6 lg:p-8">
+      <PageHeader
+        title={t("dashboards.rider.welcome", { name: profile?.name ?? "" })}
+        description={t("dashboards.rider.subhead")}
+        actions={
+          <StatusBadge tone={online ? "success" : "neutral"} className="px-3 py-1">
+            {online ? t("dashboards.rider.status.online") : t("dashboards.rider.status.offline")}
+          </StatusBadge>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-3">
         <StatCard
           label={t("dashboards.rider.stats.earningsToday")}
           value={PKR.format(stats.earningsToday)}
-          valueClassName="text-primary"
           hint={t("dashboards.rider.stats.ridesTodayHint", { count: stats.ridesToday })}
           ariaLabel={t("dashboards.rider.stats.earningsTodayAria")}
           onClick={openMyRides}
-          icon={<DollarSign className="h-4 w-4" />}
+          icon={<DollarSign />}
+          tone="brand"
         />
         <StatCard
           label={t("dashboards.rider.stats.earningsWeek")}
@@ -93,7 +103,8 @@ export default function RiderDashboard({ profile }: Props) {
           hint={t("dashboards.rider.stats.earningsWeekHint")}
           ariaLabel={t("dashboards.rider.stats.earningsWeekAria")}
           onClick={openMyRides}
-          icon={<Calendar className="h-4 w-4" />}
+          icon={<Calendar />}
+          tone="info"
         />
         <StatCard
           label={t("dashboards.rider.stats.ridesToday")}
@@ -101,19 +112,16 @@ export default function RiderDashboard({ profile }: Props) {
           hint={t("dashboards.rider.stats.ridesLifetimeHint", { count: totalRides })}
           ariaLabel={t("dashboards.rider.stats.ridesTodayAria")}
           onClick={openMyRides}
-          icon={<Car className="h-4 w-4" />}
+          icon={<Car />}
+          tone="success"
         />
         <StatCard
           label={t("dashboards.rider.stats.rating")}
-          value={
-            <span className="inline-flex items-center gap-2">
-              <span className="tabular-nums">{rating.toFixed(1)}</span>
-              <RatingStars rating={rating} />
-            </span>
-          }
+          value={<RatingStars rating={rating} />}
           hint={t("dashboards.rider.stats.ratingHint")}
           ariaLabel={t("dashboards.rider.stats.ratingAria", { rating: rating.toFixed(1) })}
-          icon={<Star className="h-4 w-4" />}
+          icon={<Star />}
+          tone="warning"
         />
         <StatCard
           label={t("dashboards.rider.stats.onlineStatus")}
@@ -141,7 +149,8 @@ export default function RiderDashboard({ profile }: Props) {
           ariaLabel={t("dashboards.rider.stats.onlineStatusAria", {
             online: online ? t("dashboards.rider.status.online") : t("dashboards.rider.status.offline"),
           })}
-          icon={<Circle className="h-4 w-4" />}
+          icon={<Circle />}
+          tone={online ? "success" : "neutral"}
         />
         <StatCard
           label={t("dashboards.rider.stats.acceptanceRate")}
@@ -149,19 +158,47 @@ export default function RiderDashboard({ profile }: Props) {
           valueClassName={accRate < 85 ? "text-warning" : undefined}
           hint={t("dashboards.rider.stats.missedHint", { count: missedRides })}
           ariaLabel={t("dashboards.rider.stats.acceptanceRateAria", { pct: accRate })}
-          icon={<CheckCircle2 className="h-4 w-4" />}
+          icon={<CheckCircle2 />}
+          tone={accRate < 85 ? "warning" : "success"}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,40%)] gap-4">
-        <Card className="rounded-xl p-4">
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            {t("dashboards.rider.locationHeading")}
-          </h3>
-          <div
-            dir="ltr"
-            className="w-full h-[240px] lg:h-[420px] rounded-lg overflow-hidden border border-border isolate"
-          >
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+        <Card className="gap-0 overflow-hidden rounded-xl py-0 xl:col-span-3">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-5">
+            <h3 className="text-sm font-semibold text-foreground">{t("dashboards.rider.recentHeading")}</h3>
+            <Link
+              to="/rider/rides?tab=completed"
+              className="shrink-0 rounded-md px-2 py-1 text-sm font-medium text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t("dashboards.activeRidesSection.viewAll")}
+            </Link>
+          </div>
+          {recent.length === 0 ? (
+            <EmptyState
+              icon={<Car />}
+              title={t("dashboards.rider.recentEmpty")}
+              description={t("dashboards.rider.recentEmptyHint")}
+            />
+          ) : (
+            <RidesTable
+              rides={recent}
+              tab="completed"
+              now={nowMs}
+              caption={t("dashboards.rider.recentHeading")}
+              compact
+              hideRiderColumn
+              viewPathPrefix="/rider/rides"
+            />
+          )}
+        </Card>
+
+        <Card className="gap-0 overflow-hidden rounded-xl py-0 xl:col-span-2">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3 md:px-5">
+            <MapPin className="size-4 text-primary-text" aria-hidden="true" />
+            <h3 className="text-sm font-semibold text-foreground">{t("dashboards.rider.locationHeading")}</h3>
+          </div>
+          <div dir="ltr" className="isolate h-[280px] w-full xl:h-full xl:min-h-[320px]">
             <MapContainer
               center={center}
               zoom={15}
@@ -177,7 +214,7 @@ export default function RiderDashboard({ profile }: Props) {
                   center={center}
                   radius={10}
                   pathOptions={{
-                    fillColor: "#15803d",
+                    fillColor: "#0d8f6e",
                     fillOpacity: 0.9,
                     color: "#ffffff",
                     weight: 2,
@@ -190,6 +227,6 @@ export default function RiderDashboard({ profile }: Props) {
           </div>
         </Card>
       </div>
-    </main>
+    </div>
   );
 }

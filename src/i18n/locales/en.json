@@ -12,7 +12,11 @@
     },
     "localeCode": "en-US",
     "myProfile": "My profile",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "serialNo": "S.No",
+    "exportPdf": "Export PDF",
+    "exportCsv": "Export CSV",
+    "needsBackend": "This action needs the backend \"{{endpoint}}\" API, which is not available yet. Ask the backend team to add it."
   },
   "layout": {
     "brand": {
@@ -29,7 +33,9 @@
       "users": "Users",
       "editUser": "Edit user",
       "myProfile": "My profile",
-      "myRides": "My rides"
+      "myRides": "My rides",
+      "notifications": "Notifications",
+      "addRider": "Add rider"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -39,6 +45,12 @@
       "users": "Users",
       "myProfile": "My profile",
       "myRides": "My rides"
+    },
+    "navGroups": {
+      "overview": "Overview",
+      "management": "Management",
+      "account": "Account",
+      "operations": "Operations"
     }
   },
   "auth": {
@@ -116,10 +128,19 @@
         "show": "Show password",
         "hide": "Hide password"
       },
-      "back": "Back"
+      "back": "Back",
+      "addRiderTitle": "Add a new rider",
+      "addRiderDescription": "Create the rider's account. They will appear as Pending until an admin or operator activates them with a PIN."
     },
     "shell": {
-      "tagline": "Rydee · Karachi, Pakistan  ·  Electric mobility for everyone"
+      "tagline": "Rydee · Karachi, Pakistan  ·  Electric mobility for everyone",
+      "panelTitle": "Mobility operations, in one place.",
+      "panelSubtitle": "Manage riders, monitor live rides and track performance across Karachi.",
+      "features": {
+        "live": "Live ride monitoring and maps",
+        "riders": "Rider onboarding and verification",
+        "insights": "Ride performance insights"
+      }
     }
   },
   "dashboards": {
@@ -143,6 +164,31 @@
         "label": "Blocked Riders",
         "hint": "Tap to review blocked →",
         "aria": "View {{count}} blocked riders"
+      },
+      "totalRides": {
+        "label": "Total rides",
+        "hint": "View ride history →",
+        "aria": "View {{count}} total rides"
+      },
+      "liveRides": {
+        "label": "Live rides",
+        "hint": "Monitor rides in progress →",
+        "aria": "View {{count}} live rides"
+      },
+      "completedRides": {
+        "label": "Completed rides",
+        "hint": "View completed rides →",
+        "aria": "View {{count}} completed rides"
+      },
+      "canceledRides": {
+        "label": "Canceled rides",
+        "hint": "View canceled rides →",
+        "aria": "View {{count}} canceled rides"
+      },
+      "totalUsers": {
+        "label": "Staff users",
+        "hint": "Admins and operators →",
+        "aria": "View {{count}} staff users"
       }
     },
     "errors": {
@@ -177,7 +223,10 @@
         "acceptanceRate": "Acceptance rate",
         "acceptanceRateAria": "Acceptance rate {{pct}} percent",
         "missedHint": "Missed: {{count}}"
-      }
+      },
+      "recentHeading": "Recent rides",
+      "recentEmpty": "No completed rides yet",
+      "recentEmptyHint": "Your completed rides will show up here."
     },
     "activeRidesSection": {
       "heading": "Active rides",
@@ -185,7 +234,8 @@
       "caption": "Active rides",
       "viewAll": "View all →",
       "loading": "Loading active rides…",
-      "empty": "No active rides right now."
+      "empty": "No active rides right now.",
+      "emptyHint": "Rides in progress will appear here automatically."
     },
     "ridesOverview": {
       "title": "Rides overview",
@@ -202,7 +252,8 @@
       "caption": "Showing all {{total}} rides to date",
       "empty": "No ride data yet",
       "srSummary": "{{completed}} completed, {{canceled}} canceled, {{live}} live, {{upcoming}} upcoming.",
-      "range": "{{from}} – {{to}}"
+      "range": "{{from}} – {{to}}",
+      "centerLabel": "rides"
     },
     "busyAreas": {
       "title": "Busy areas",
@@ -213,6 +264,30 @@
       "srItem": "{{label}}: {{count}} rides",
       "legendBusiest": "Busiest area",
       "legendOther": "Other areas"
+    },
+    "admin": {
+      "greeting": "Welcome back, {{name}}",
+      "greetingNoName": "Welcome back",
+      "subhead": "{{date}} · Here is what is happening across Rydee today.",
+      "liveBadge": "Live · refreshes every {{seconds}}s"
+    },
+    "sections": {
+      "rides": "Rides",
+      "ridesHint": "Ride activity across the platform",
+      "people": "Riders & users",
+      "peopleHint": "Rider onboarding status and staff accounts",
+      "performance": "Performance",
+      "performanceHint": "Monthly ride outcomes and current distribution"
+    },
+    "performanceUnavailable": {
+      "title": "Performance data is unavailable",
+      "description": "Ride statistics could not be loaded. Try refreshing the page."
+    },
+    "monthly": {
+      "title": "Monthly performance",
+      "subtitle": "Completed and canceled rides per month",
+      "empty": "No monthly ride data yet",
+      "srItem": "{{month}}: {{completed}} completed, {{canceled}} canceled."
     }
   },
   "riders": {
@@ -265,7 +340,8 @@
       "emptyTitle": "No riders found",
       "emptyHint": "Try adjusting your filters or search term.",
       "clearFilters": "Clear filters",
-      "editRiderAria": "Edit {{name}}"
+      "editRiderAria": "Edit {{name}}",
+      "addRider": "Add rider"
     },
     "detailSheet": {
       "title": "Rider details",
@@ -437,7 +513,8 @@
             "confirm": "Reactivate rider",
             "cancel": "Cancel"
           }
-        }
+        },
+        "adminOnly": "Only an admin can block, unblock, offboard or reactivate a rider."
       },
       "pin": {
         "heading": "PIN",
@@ -453,6 +530,17 @@
         "unavailable": "Reset PIN is temporarily unavailable",
         "resetFailed": "Could not reset PIN.",
         "resetSuccess": "PIN reset successfully."
+      },
+      "readOnly": "You can view this account. Only an admin can change staff users.",
+      "danger": {
+        "heading": "Delete account",
+        "riderDescription": "Permanently remove this rider and their account. Only admins can do this.",
+        "userDescription": "Permanently remove this staff user's account. Only admins can do this.",
+        "deleteRider": "Delete rider",
+        "deleteUser": "Delete user",
+        "confirmTitle": "Delete {{name}}?",
+        "confirmDescription": "This permanently removes {{name}}'s account. This cannot be undone.",
+        "failed": "The account could not be deleted. Please try again."
       }
     },
     "profileCard": {
@@ -495,6 +583,25 @@
       "live": "Live",
       "loading": "Loading live map…",
       "reporting": "{{located}} of {{total}} reporting location"
+    },
+    "report": {
+      "heading": "Ride report",
+      "description": "Rides for this rider between two dates. Download it as CSV or PDF.",
+      "from": "From",
+      "to": "To",
+      "rangeInvalid": "The start date must be on or before the end date.",
+      "loading": "Loading rides…",
+      "loadFailed": "Rides could not be loaded for this rider.",
+      "empty": "No rides for this rider in the selected dates.",
+      "stats": {
+        "total": "Total rides",
+        "completed": "Completed",
+        "canceled": "Canceled",
+        "ongoing": "Ongoing",
+        "upcoming": "Upcoming",
+        "earnings": "Earnings",
+        "distance": "Distance"
+      }
     }
   },
   "rides": {
@@ -520,7 +627,8 @@
       "live": "Live",
       "upcoming": "Upcoming",
       "completed": "Completed",
-      "canceled": "Canceled"
+      "canceled": "Canceled",
+      "all": "All rides"
     },
     "columns": {
       "rideId": "Ride ID",
@@ -534,7 +642,8 @@
       "scheduledAt": "Scheduled",
       "completedAt": "Completed",
       "canceledBy": "Canceled by",
-      "actions": "Actions"
+      "actions": "Actions",
+      "date": "Date"
     },
     "status": {
       "goingToPick": "Going to pick",
@@ -562,8 +671,10 @@
         "live": "My live ride",
         "upcoming": "My upcoming rides",
         "completed": "My completed rides",
-        "canceled": "My canceled rides"
-      }
+        "canceled": "My canceled rides",
+        "all": "All my rides"
+      },
+      "all": "All rides"
     },
     "empty": {
       "live": "No live rides right now",
@@ -574,8 +685,10 @@
         "live": "You have no live ride right now",
         "upcoming": "You have no upcoming rides",
         "completed": "You have no completed rides yet",
-        "canceled": "You have no canceled rides"
-      }
+        "canceled": "You have no canceled rides",
+        "all": "You have no rides yet"
+      },
+      "all": "No rides yet"
     },
     "errors": {
       "loadFailed": "Failed to load rides"
@@ -609,6 +722,24 @@
         "min": "min"
       },
       "riderWithEta": "Rider — {{minutes}} min ({{km}} km)"
+    },
+    "exportFailed": "The export could not be created. Please try again.",
+    "actionFailed": "The change could not be saved. Please try again.",
+    "edit": {
+      "title": "Edit ride {{id}}",
+      "fare": "Fare ({{currency}})",
+      "fareInvalid": "Enter a fare of 0 or more.",
+      "save": "Save changes",
+      "saved": "Ride {{id}} has been updated.",
+      "aria": "Edit ride {{id}}",
+      "button": "Edit ride"
+    },
+    "delete": {
+      "done": "Ride {{id}} has been deleted.",
+      "aria": "Delete ride {{id}}",
+      "button": "Delete ride",
+      "confirmTitle": "Delete ride {{id}}?",
+      "confirmDescription": "This permanently removes the ride record. This cannot be undone."
     }
   },
   "users": {
@@ -630,7 +761,8 @@
       "email": "Email",
       "role": "Role",
       "joined": "Joined",
-      "actions": "Actions"
+      "actions": "Actions",
+      "status": "Status"
     },
     "rowsPerPage": "Rows per page",
     "prevPage": "Previous page",
@@ -651,7 +783,40 @@
       "loadFailed": "Could not load users."
     },
     "addNew": "Add new",
-    "addNewAria": "Add new user"
+    "addNewAria": "Add new user",
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "actions": {
+      "disable": "Disable",
+      "enable": "Enable",
+      "delete": "Delete",
+      "disableAria": "Disable {{name}}",
+      "enableAria": "Enable {{name}}",
+      "deleteAria": "Delete {{name}}"
+    },
+    "confirm": {
+      "disable": {
+        "title": "Disable {{name}}?",
+        "description": "{{name}} will not be able to use the portal until an admin enables the account again."
+      },
+      "enable": {
+        "title": "Enable {{name}}?",
+        "description": "{{name}} will be able to sign in and use the portal again."
+      },
+      "delete": {
+        "title": "Delete {{name}}?",
+        "description": "This permanently removes {{name}}'s account. This cannot be undone."
+      }
+    },
+    "feedback": {
+      "disabled": "{{name}} has been disabled.",
+      "enabled": "{{name}} has been enabled.",
+      "deleted": "{{name}} has been deleted.",
+      "failed": "The change could not be saved. Please try again."
+    },
+    "readOnlyNotice": "You can view staff users. Only an admin can add, edit, disable or delete them."
   },
   "errors": {
     "boundary": {
@@ -709,5 +874,13 @@
         "hint": "Choose a strong password of at least 8 characters."
       }
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Updates about riders, rides and your account.",
+    "loading": "Loading notifications…",
+    "error": "Notifications could not be loaded. Try refreshing the page.",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "When there is something new about riders, rides or your account, it will appear here."
   }
 }

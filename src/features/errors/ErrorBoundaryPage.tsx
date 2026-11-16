@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useRouteError } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TriangleAlert } from "lucide-react";
 
 export default function ErrorBoundaryPage() {
   const error = useRouteError();
@@ -13,21 +13,22 @@ export default function ErrorBoundaryPage() {
   }, [error]);
 
   return (
-    <div className="min-h-svh flex items-center justify-center p-6 bg-background">
-      <Card className="w-full max-w-md rounded-2xl">
-        <CardHeader>
-          <CardTitle>{t("errors.boundary.title")}</CardTitle>
-          <CardDescription>{t("errors.boundary.message")}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+    <div className="flex min-h-svh items-center justify-center bg-background p-6">
+      <div className="flex w-full max-w-md flex-col items-center text-center">
+        <span className="flex size-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+          <TriangleAlert className="size-7" aria-hidden="true" />
+        </span>
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t("errors.boundary.title")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("errors.boundary.message")}</p>
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
           <Button variant="outline" onClick={() => window.location.reload()}>
             {t("errors.boundary.reload")}
           </Button>
           <Button asChild>
             <Link to="/">{t("errors.boundary.goHome")}</Link>
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

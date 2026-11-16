@@ -123,3 +123,12 @@ export function postMultipartWithProgress<T>(
   });
   return { promise, abort: () => xhr.abort() };
 }
+
+export class EndpointNotAvailableError extends Error {
+  readonly endpoint: string;
+  constructor(endpoint: string) {
+    super(`The backend does not provide the "${endpoint}" endpoint yet.`);
+    this.name = "EndpointNotAvailableError";
+    this.endpoint = endpoint;
+  }
+}

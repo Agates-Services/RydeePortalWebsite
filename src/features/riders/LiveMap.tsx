@@ -24,16 +24,16 @@ export default function LiveMap({ riders }: LiveMapProps) {
           center={[rider.lat, rider.lng]}
           radius={10}
           pathOptions={{
-            fillColor: "#15803d",
+            fillColor: "#0d8f6e",
             fillOpacity: 0.9,
             color: "#ffffff",
             weight: 2,
           }}
         >
           <Popup>
-            <div style={{ fontFamily: "Plus Jakarta Sans, sans-serif", minWidth: 160 }}>
-              <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{rider.name}</p>
-              <p style={{ fontSize: 12, color: "#4a6b5e", marginBottom: 2 }}>📍 {rider.area}</p>
+            <div className="min-w-40 font-sans">
+              <p className="mb-1 text-sm font-semibold text-slate-900">{rider.name}</p>
+              <p className="text-xs text-slate-500">📍 {rider.area}</p>
             </div>
           </Popup>
         </CircleMarker>

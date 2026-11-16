@@ -95,9 +95,11 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <Logo subtitle={t("auth.register.loginLogoSubtitle")} />
-      <Card className="w-full rounded-2xl card-elevated border-border">
-        <CardContent className="p-8">
+      <div className="lg:hidden">
+        <Logo subtitle={t("auth.register.loginLogoSubtitle")} />
+      </div>
+      <Card className="w-full rounded-2xl border-border">
+        <CardContent className="p-6 sm:p-8">
           <h2 className="text-xl font-semibold mb-1 text-card-foreground">
             {t("auth.login.headline")}
           </h2>
@@ -106,7 +108,7 @@ export default function LoginPage() {
           {expiredNotice && (
             <div
               role="status"
-              className="mb-5 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200"
+              className="mb-5 rounded-lg border border-warning/25 bg-warning-muted p-3 text-sm text-warning"
             >
               {t("auth.login.sessionExpiredNotice")}
             </div>
@@ -170,7 +172,7 @@ export default function LoginPage() {
               disabled={loading}
               aria-busy={loading}
               size="lg"
-              className="w-full rounded-xl py-3.5 h-auto text-sm font-semibold shadow-[0_4px_20px_rgba(13,143,110,0.30)] hover:bg-primary-hover active:bg-primary-active hover:shadow-[0_4px_28px_rgba(13,143,110,0.45)] mt-1"
+              className="w-full rounded-xl py-3 h-auto text-sm font-semibold hover:bg-primary-hover active:bg-primary-active mt-1"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

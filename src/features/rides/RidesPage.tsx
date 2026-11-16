@@ -3,22 +3,41 @@ import { useSearchParams } from "react-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { useTranslation } from "react-i18next";
 import {
+  deleteRide,
   getRides,
   LIVE_POLL_MS,
+  updateRide,
   type Ride,
   type RideTab,
   type RidesCounts,
 } from "@/api/rides";
+import { EndpointNotAvailableError } from "@/api/client";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { downloadCsv, serializeCsv } from "@/lib/csv";
+import { downloadTablePdf } from "@/lib/pdf";
+import { can } from "@/lib/permissions";
+import { RIDES_EXPORT_HEADERS, ridesExportFilename, ridesToExportRows } from "./export";
+import { EditRideSheet, type EditRideValues } from "./components/EditRideSheet";
+import type { RidesTableTab } from "./components/RidesTable";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search } from "lucide-react";
+import { FileDown, Pencil, Search, Trash2 } from "lucide-react";
 import { useDebounced } from "@/features/riders/useDebounced";
 import { RidesTable } from "./components/RidesTable";
 import { ARRIVED_RETENTION_MS } from "./components/RidesTable.helpers";
 
-const TABS: readonly RideTab[] = ["live", "upcoming", "completed", "canceled"];
+const SERVER_TABS: readonly RideTab[] = ["live", "upcoming", "completed", "canceled"];
+const TABS: readonly RidesTableTab[] = ["all", ...SERVER_TABS];
+const EXPORT_PAGE_SIZE = 1000;
+const PDF_TAB_NAME: Record<RidesTableTab, string> = {
+  all: "All rides",
+  live: "Live",
+  upcoming: "Upcoming",
+  completed: "Completed",
+  canceled: "Canceled",
+};
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZES)[number];
 
@@ -39,20 +58,34 @@ const COMMON_KEYS: readonly SortKey[] = [
   "status",
   "fareAmount",
 ];
-const TAB_KEYS: Record<RideTab, readonly SortKey[]> = {
+const TAB_KEYS: Record<RidesTableTab, readonly SortKey[]> = {
+  all: [],
   live: ["startedAt"],
   upcoming: ["scheduledAt"],
   completed: ["completedAt", "duration"],
   canceled: ["canceledAt", "canceledBy"],
 };
 
-function validKeysFor(tab: RideTab): readonly SortKey[] {
+function validKeysFor(tab: RidesTableTab): readonly SortKey[] {
   return [...COMMON_KEYS, ...TAB_KEYS[tab]];
 }
 
-function readTab(sp: URLSearchParams): RideTab {
+function readTab(sp: URLSearchParams): RidesTableTab {
   const v = sp.get("tab");
-  return (TABS as readonly string[]).includes(v ?? "") ? (v as RideTab) : "live";
+  return (TABS as readonly string[]).includes(v ?? "") ? (v as RidesTableTab) : "all";
+}
+
+function matchesSearch(r: Ride, q: string): boolean {
+  return (
+    q === "" ||
+    r.rideId.toLowerCase().includes(q) ||
+    r.rider.name.toLowerCase().includes(q) ||
+    r.rider.phone.toLowerCase().includes(q) ||
+    r.customer.name.toLowerCase().includes(q) ||
+    r.customer.phone.toLowerCase().includes(q) ||
+    r.pickup.label.toLowerCase().includes(q) ||
+    r.dropoff.label.toLowerCase().includes(q)
+  );
 }
 
 function readPage(sp: URLSearchParams): number {
@@ -65,7 +98,7 @@ function readPageSize(sp: URLSearchParams, def: PageSize): PageSize {
   return (PAGE_SIZES as readonly number[]).includes(n) ? (n as PageSize) : def;
 }
 
-function readSort(sp: URLSearchParams, tab: RideTab): SortState {
+function readSort(sp: URLSearchParams, tab: RidesTableTab): SortState {
   const key = sp.get("sort");
   const dir = sp.get("dir");
   const valid = validKeysFor(tab);
@@ -128,10 +161,18 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const myPhone = scope === "mine" ? (profile?.phone ?? "") : "";
+  const role = profile?.role;
+  const canEditRide = scope === "all" && can(role, "editRide");
+  const canDeleteRide = scope === "all" && can(role, "deleteRide");
+  const [editing, setEditing] = useState<Ride | null>(null);
+  const [deleting, setDeleting] = useState<Ride | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const initialParams = useRef(searchParams).current;
 
-  const [tab, setTab] = useState<RideTab>(() => readTab(initialParams));
+  const [tab, setTab] = useState<RidesTableTab>(() => readTab(initialParams));
   const [searchInput, setSearchInput] = useState(() => initialParams.get("q") ?? "");
   const debouncedSearch = useDebounced(searchInput, 300);
   const initDefault: PageSize =
@@ -175,7 +216,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
 
   useEffect(() => {
     const next = new URLSearchParams();
-    if (tab !== "live") next.set("tab", tab);
+    if (tab !== "all") next.set("tab", tab);
     const q = debouncedSearch.trim();
     if (q !== "") next.set("q", q);
     if (page !== 1) next.set("page", String(page));
@@ -194,8 +235,31 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
   useEffect(() => {
     let cancelled = false;
     const isServerPaged = tab === "completed" || tab === "canceled";
+    const withScope = <T extends object>(req: T) =>
+      scope === "mine" ? { ...req, scope: "mine" as const, phone: myPhone } : req;
     const fetchOnce = async () => {
       try {
+        if (tab === "all") {
+          const parts = await Promise.all(
+            SERVER_TABS.map((serverTab) =>
+              getRides(
+                withScope(
+                  serverTab === "completed" || serverTab === "canceled"
+                    ? { tab: serverTab, page: 1, pageSize: EXPORT_PAGE_SIZE }
+                    : { tab: serverTab },
+                ),
+              ),
+            ),
+          );
+          if (cancelled) return;
+          const merged = parts.flatMap((p) => p.rides);
+          setRides(merged);
+          setTotal(merged.length);
+          setCounts(parts[0].counts);
+          setError(null);
+          setUnavailable(false);
+          return;
+        }
         const baseReq = isServerPaged
           ? { tab, page, pageSize, sortBy: sort.key, sortDir: sort.dir }
           : { tab };
@@ -257,16 +321,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     }
     const q = debouncedSearch.trim().toLowerCase();
     if (q !== "") {
-      out = out.filter(
-        (r) =>
-          r.rideId.toLowerCase().includes(q) ||
-          r.rider.name.toLowerCase().includes(q) ||
-          r.rider.phone.toLowerCase().includes(q) ||
-          r.customer.name.toLowerCase().includes(q) ||
-          r.customer.phone.toLowerCase().includes(q) ||
-          r.pickup.label.toLowerCase().includes(q) ||
-          r.dropoff.label.toLowerCase().includes(q),
-      );
+      out = out.filter((r) => matchesSearch(r, q));
     }
     if (tab === "completed" || tab === "canceled") return out;
     return [...out].sort((a, b) => compare(a, b, sort.key, sort.dir));
@@ -291,6 +346,117 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     : Math.min(currentPage * pageSize, visibleRides.length);
   const summaryText = t("rides.summary", { from: fromIdx, to: toIdx, count: totalForSummary });
 
+  const allCount = counts.live + counts.upcoming + counts.completed + counts.canceled;
+  const tabCount = (name: RidesTableTab) => (name === "all" ? allCount : counts[name]);
+
+  const ridesForExport = async (): Promise<Ride[]> => {
+    if (!isServerPaged) return visibleRides;
+    const req = { tab: tab as RideTab, page: 1, pageSize: EXPORT_PAGE_SIZE, sortBy: sort.key, sortDir: sort.dir };
+    const data = await getRides(scope === "mine" ? { ...req, scope: "mine" as const, phone: myPhone } : req);
+    const q = debouncedSearch.trim().toLowerCase();
+    return data.rides.filter((r) => matchesSearch(r, q));
+  };
+
+  const handleExport = async (kind: "csv" | "pdf") => {
+    setExporting(true);
+    try {
+      const list = await ridesForExport();
+      const rows = ridesToExportRows(list);
+      if (kind === "csv") {
+        downloadCsv(serializeCsv(RIDES_EXPORT_HEADERS, rows), ridesExportFilename(tab, "csv"));
+      } else {
+        await downloadTablePdf({
+          title: `Rydee rides: ${PDF_TAB_NAME[tab]}`,
+          subtitle: `${list.length} rides · exported ${new Date().toLocaleString("en-GB")}`,
+          headers: RIDES_EXPORT_HEADERS,
+          rows,
+          filename: ridesExportFilename(tab, "pdf"),
+          numbered: true,
+        });
+      }
+    } catch {
+      setNotice({ tone: "error", text: t("rides.exportFailed") });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const reportActionError = (err: unknown) => {
+    setNotice({
+      tone: "error",
+      text:
+        err instanceof EndpointNotAvailableError
+          ? t("common.needsBackend", { endpoint: err.endpoint })
+          : t("rides.actionFailed"),
+    });
+  };
+
+  const handleSaveRide = async (values: EditRideValues) => {
+    if (!editing) return;
+    setActionBusy(true);
+    setNotice(null);
+    try {
+      await updateRide(editing.rideId, values);
+      setNotice({ tone: "success", text: t("rides.edit.saved", { id: editing.rideId }) });
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      reportActionError(err);
+    } finally {
+      setActionBusy(false);
+      setEditing(null);
+    }
+  };
+
+  const handleDeleteRide = async () => {
+    if (!deleting) return;
+    setActionBusy(true);
+    setNotice(null);
+    try {
+      await deleteRide(deleting.rideId);
+      setNotice({ tone: "success", text: t("rides.delete.done", { id: deleting.rideId }) });
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      reportActionError(err);
+    } finally {
+      setActionBusy(false);
+      setDeleting(null);
+    }
+  };
+
+  const renderActions =
+    canEditRide || canDeleteRide
+      ? (ride: Ride) => (
+          <>
+            {canEditRide && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setEditing(ride)}
+                aria-label={t("rides.edit.aria", { id: ride.rideId })}
+                title={t("rides.edit.button")}
+              >
+                <Pencil size={14} aria-hidden="true" />
+              </Button>
+            )}
+            {canDeleteRide && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                onClick={() => setDeleting(ride)}
+                aria-label={t("rides.delete.aria", { id: ride.rideId })}
+                title={t("rides.delete.button")}
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </Button>
+            )}
+          </>
+        )
+      : undefined;
+
   const toggleSort = useCallback((key: SortKey) => {
     setSort((prev) => {
       if (prev.key !== key) return { key, dir: "asc" };
@@ -301,11 +467,11 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div
           role="tablist"
           aria-label={t("rides.filterByStatus")}
-          className="flex flex-wrap gap-1 bg-muted rounded-lg p-1"
+          className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/60 p-1"
         >
           {TABS.map((tName) => {
             const selected = tab === tName;
@@ -326,15 +492,16 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
               >
                 {t(`rides.tabs.${tName}`)}
                 <span
-                  className="ms-2 inline-flex items-center justify-center rounded-full bg-background px-1.5 text-xs font-semibold text-muted-foreground"
+                  className="ms-2 inline-flex min-w-5 items-center justify-center rounded-full bg-background px-1.5 text-xs font-semibold tabular-nums text-muted-foreground"
                   data-testid={`fqa-rides-count-${tName}`}
                 >
-                  {counts[tName]}
+                  {tabCount(tName)}
                 </span>
               </button>
             );
           })}
         </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative w-full sm:w-72">
           <Label htmlFor="fqa-rides-search" className="sr-only">
             {t("rides.search.label")}
@@ -352,9 +519,45 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
             className="h-9 w-full rounded-lg ps-9 pe-3 text-sm bg-card"
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExport("csv")}
+            disabled={exporting || visibleRides.length === 0}
+          >
+            {t("common.exportCsv")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExport("pdf")}
+            disabled={exporting || visibleRides.length === 0}
+          >
+            <FileDown size={14} aria-hidden="true" className="me-1" />
+            {t("common.exportPdf")}
+          </Button>
+        </div>
+        </div>
       </div>
 
-      <Card className="rounded-2xl border-border overflow-hidden p-0">
+      {notice && (
+        <div
+          role={notice.tone === "error" ? "alert" : "status"}
+          className={
+            "rounded-lg border px-4 py-2.5 text-sm " +
+            (notice.tone === "error"
+              ? "border-destructive/25 bg-destructive/10 text-destructive"
+              : "border-success/25 bg-success-muted text-success")
+          }
+        >
+          {notice.text}
+        </div>
+      )}
+
+      <Card className="gap-0 rounded-xl border-border overflow-hidden p-0">
         {loading && (
           <div role="status" className="px-6 py-10 text-center text-sm text-muted-foreground">
             {t("rides.loading")}
@@ -404,6 +607,8 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
                 arrivedFirstSeen={arrivedFirstSeen.current}
                 hideRiderColumn={scope === "mine"}
                 viewPathPrefix={scope === "mine" ? "/rider/rides" : "/admin/rides"}
+                startIndex={(currentPage - 1) * pageSize}
+                renderActions={renderActions}
               />
             </div>
 
@@ -421,7 +626,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
                   id="fqa-rides-page-size"
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  className="h-8 rounded-md border border-input bg-card px-2 text-xs"
                 >
                   {PAGE_SIZES.map((n) => (
                     <option key={n} value={n}>{n}</option>
@@ -457,6 +662,26 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
           </>
         )}
       </Card>
+
+      <EditRideSheet
+        ride={editing}
+        busy={actionBusy}
+        onSave={(values) => void handleSaveRide(values)}
+        onClose={() => !actionBusy && setEditing(null)}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open && !actionBusy) setDeleting(null);
+        }}
+        title={t("rides.delete.confirmTitle", { id: deleting?.rideId ?? "" })}
+        description={t("rides.delete.confirmDescription")}
+        confirmLabel={t("rides.delete.button")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        busy={actionBusy}
+        onConfirm={() => void handleDeleteRide()}
+      />
     </div>
   );
 }

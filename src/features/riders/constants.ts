@@ -1,4 +1,7 @@
 // User-interface constants for rider forms (Karachi area picker plus the verification-document checklist).
+import type { StatusTone } from "@/components/StatusBadge";
+import type { RiderStatus } from "@/types/rider";
+
 export const KARACHI_AREAS = [
   "Clifton",
   "DHA Phase 1",
@@ -24,3 +27,10 @@ export const VERIFICATION_DOCS = [
   "Driving License",
   "Utility Bill",
 ];
+
+export const RIDER_STATUS_TONE: Record<RiderStatus, StatusTone> = {
+  active: "success",
+  pending: "warning",
+  blocked: "danger",
+  offboarded: "neutral",
+};

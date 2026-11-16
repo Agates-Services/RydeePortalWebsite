@@ -3,7 +3,11 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Camera, Download, Eye, FileUp, Info, KeyRound, Loader2, Lock, ShieldOff, Trash2, X } from "lucide-react";
 import { activateRider, getAllRiders, updateUser } from "@/api/riders";
-import { getAllUsers } from "@/api/users";
+import { deleteUser, getAllUsers } from "@/api/users";
+import { EndpointNotAvailableError } from "@/api/client";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { can } from "@/lib/permissions";
+import { RiderRideReport } from "@/features/riders/RiderRideReport";
 import { useAuth } from "@/features/auth/useAuth";
 import type { RiderStatus } from "@/types/rider";
 import {
@@ -25,10 +29,10 @@ import {
 } from "@/features/riders/documentTypes";
 import { mapAllRidersResponse } from "@/features/riders/mapper";
 import { formatCnic, normalizeCnicInput } from "@/features/riders/cnic";
-import { KARACHI_AREAS } from "@/features/riders/constants";
+import { KARACHI_AREAS, RIDER_STATUS_TONE } from "@/features/riders/constants";
 import type { AllRidersRow } from "@/types/rider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,7 +66,6 @@ function normalisePhone(raw: string): string {
 
 const AVATAR_PALETTE = ["#b8c4d6","#dcb8bc","#dccdb0","#c9bcd0","#b8c9c8","#bcbdd6","#cac2ba","#d4b8a5"] as const;
 
-const STATUS_BG: Record<string, string> = { active: "#15803d", pending: "#b45309", blocked: "#dc2626", offboarded: "#6b7280" };
 
 function avatarBg(key: string): string {
   const k = (key ?? "").trim();
@@ -147,6 +150,13 @@ export default function RiderEditPage() {
   const editedRole: "Rider" | "Admin" | "Operator" =
     navState?.role === "Admin" ? "Admin" : navState?.role === "Operator" ? "Operator" : "Rider";
   const isRider = editedRole === "Rider";
+  const myRole = authProfile?.role;
+  const canChangeStatus = can(myRole, "blockRider");
+  const canEditThis = isRider ? can(myRole, "editRider") : can(myRole, "manageStaffUsers");
+  const canDeleteThis = isRider ? can(myRole, "deleteRider") : can(myRole, "manageStaffUsers");
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeMessage, setRemoveMessage] = useState<string | null>(null);
   const backTo = navState?.backTo ?? (isRider ? `/admin/all-riders${backSearch}` : "/admin/users");
 
   const targetPhone = normalisePhone(decodeURIComponent(phoneParam ?? ""));
@@ -313,7 +323,7 @@ export default function RiderEditPage() {
   }, [form.name, form.area, form.dob, cnicDigits, t]);
 
   const hasErrors = Object.keys(errors).length > 0;
-  const canSave = dirty && !saving;
+  const canSave = dirty && !saving && canEditThis;
 
   const handleFieldChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -668,15 +678,15 @@ export default function RiderEditPage() {
           <input ref={avatarInputRef} type="file" accept={ACCEPT_PROFILE_PHOTO} className="sr-only" onChange={(e) => { handleAvatarFile(e.target.files); e.target.value = ""; }} />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-foreground">{row.name || "\u2014"}</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">{row.name || "\u2014"}</h2>
           {isRider && (
             <div className="mt-1 flex">
-              <Badge className="gap-1.5 rounded-full border-transparent px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: STATUS_BG[status ?? row.status] ?? STATUS_BG.offboarded }}>{t(`riders.common.badges.${status ?? row.status}`)}</Badge>
+              <StatusBadge tone={RIDER_STATUS_TONE[status ?? row.status] ?? "neutral"}>{t(`riders.common.badges.${status ?? row.status}`)}</StatusBadge>
             </div>
           )}
           {!isRider && (
             <div className="mt-1 flex">
-              <Badge variant="outline" className="gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium">{t(`users.roles.${editedRole}`)}</Badge>
+              <StatusBadge tone="brand" dot={false}>{t(`users.roles.${editedRole}`)}</StatusBadge>
             </div>
           )}
         </div>
@@ -686,6 +696,11 @@ export default function RiderEditPage() {
         </div>
       </div>
 
+      {!canEditThis && (
+        <p className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground" data-testid="fqa-edit-read-only">
+          {t("riders.edit.readOnly")}
+        </p>
+      )}
       {saved && (<div role="status" aria-live="polite" className="rounded-md border border-success/25 bg-success-muted p-3 text-sm text-success" data-testid="fqa-edit-saved">{t("riders.edit.saved")}</div>)}
       {saveError && (<div role="alert" className="rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">{saveError}</div>)}
 
@@ -756,7 +771,7 @@ export default function RiderEditPage() {
               <h3 id="fqa-status-heading" className="text-base font-medium text-foreground">{t("riders.edit.status.heading")}</h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{t("riders.edit.status.current")}:</span>
-                <Badge className="rounded-full border-transparent px-2.5 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: STATUS_BG[status ?? row.status] ?? STATUS_BG.offboarded }} data-testid="fqa-status-badge">{t(`riders.common.badges.${status ?? row.status}`)}</Badge>
+                <span data-testid="fqa-status-badge"><StatusBadge tone={RIDER_STATUS_TONE[status ?? row.status] ?? "neutral"}>{t(`riders.common.badges.${status ?? row.status}`)}</StatusBadge></span>
               </div>
             </div>
 
@@ -803,6 +818,13 @@ export default function RiderEditPage() {
                   btns.push({ kind: "offboard", variant: "destructive", label: t("riders.edit.status.buttons.offboard"), icon: null });
                 } else if (s === "offboarded") {
                   btns.push({ kind: "reactivate", variant: "outline", label: t("riders.edit.status.buttons.reactivate"), icon: null });
+                }
+                if (!canChangeStatus) {
+                  return (
+                    <p className="text-sm text-muted-foreground" data-testid="fqa-status-admin-only">
+                      {t("riders.edit.status.adminOnly")}
+                    </p>
+                  );
                 }
                 return (
                   <div className="flex flex-wrap gap-2">
@@ -928,9 +950,9 @@ export default function RiderEditPage() {
                       <li key={type} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
                         <span className="truncate text-sm text-foreground">{typeName(type)}</span>
                         {doc ? (
-                          <Badge className="ms-auto shrink-0 gap-1 bg-success text-white text-[10px] font-medium"><span aria-hidden="true">{"\u2713"}</span>{t("riders.edit.documents.badge.received")}</Badge>
+                          <StatusBadge tone="success" className="ms-auto">{t("riders.edit.documents.badge.received")}</StatusBadge>
                         ) : (
-                          <Badge variant="outline" className="ms-auto shrink-0 text-[10px] font-medium">{t("riders.edit.documents.badge.missing")}</Badge>
+                          <StatusBadge tone="neutral" className="ms-auto">{t("riders.edit.documents.badge.missing")}</StatusBadge>
                         )}
                         {doc && (
                           <div className="flex items-center gap-0.5 shrink-0" role="group" aria-label={t("riders.edit.documents.actionsAria", { type: typeName(type) })}>
@@ -945,7 +967,7 @@ export default function RiderEditPage() {
                   {otherDocs.map((doc) => (
                     <li key={doc.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
                       <span className="truncate text-sm text-foreground" dir="auto">{doc.name}</span>
-                      <Badge className="ms-auto shrink-0 gap-1 bg-success text-white text-[10px] font-medium"><span aria-hidden="true">{"\u2713"}</span>{t("riders.edit.documents.badge.received")}</Badge>
+                      <StatusBadge tone="success" className="ms-auto">{t("riders.edit.documents.badge.received")}</StatusBadge>
                       <div className="flex items-center gap-0.5 shrink-0" role="group" aria-label={t("riders.edit.documents.actionsAria", { type: doc.name ?? "" })}>
                         <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" asChild aria-label={t("riders.edit.documents.viewAria", { type: doc.name ?? "" })}><a href={doc.downloadUrl} target="_blank" rel="noopener noreferrer"><Eye size={14} aria-hidden="true" /></a></Button></TooltipTrigger><TooltipContent>{t("riders.edit.documents.view")}</TooltipContent></Tooltip>
                         <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7" asChild aria-label={t("riders.edit.documents.downloadAria", { type: doc.name ?? "" })}><a href={doc.downloadUrl} download={doc.filename}><Download size={14} aria-hidden="true" /></a></Button></TooltipTrigger><TooltipContent>{t("riders.edit.documents.download")}</TooltipContent></Tooltip>
@@ -1015,6 +1037,60 @@ export default function RiderEditPage() {
           <Button type="submit" disabled={!canSave} aria-busy={saving || undefined} data-testid="fqa-edit-save">{saving ? t("riders.edit.saving") : t("riders.edit.save")}</Button>
         </div>
       </form>
+
+      {isRider && row.phone && <RiderRideReport phone={row.phone} name={row.name} />}
+
+      {canDeleteThis && (
+        <Card className="border-destructive/30 p-4 md:p-6" data-testid="fqa-danger-zone">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">{t("riders.edit.danger.heading")}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t(isRider ? "riders.edit.danger.riderDescription" : "riders.edit.danger.userDescription")}
+              </p>
+            </div>
+            <Button type="button" variant="destructive" onClick={() => setRemoveOpen(true)}>
+              <Trash2 size={14} aria-hidden="true" className="me-2" />
+              {t(isRider ? "riders.edit.danger.deleteRider" : "riders.edit.danger.deleteUser")}
+            </Button>
+          </div>
+          {removeMessage && (
+            <p role="alert" className="mt-3 rounded-md border border-destructive/25 bg-destructive/10 p-2.5 text-sm text-destructive">
+              {removeMessage}
+            </p>
+          )}
+        </Card>
+      )}
+
+      <ConfirmDialog
+        open={removeOpen}
+        onOpenChange={(open) => {
+          if (!open && !removeBusy) setRemoveOpen(false);
+        }}
+        title={t("riders.edit.danger.confirmTitle", { name: row.name || row.phone })}
+        description={t("riders.edit.danger.confirmDescription", { name: row.name || row.phone })}
+        confirmLabel={t(isRider ? "riders.edit.danger.deleteRider" : "riders.edit.danger.deleteUser")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        busy={removeBusy}
+        onConfirm={async () => {
+          setRemoveBusy(true);
+          setRemoveMessage(null);
+          try {
+            await deleteUser(row.phone);
+            navigate(isRider ? "/admin/all-riders" : "/admin/users", { replace: true });
+          } catch (err) {
+            setRemoveMessage(
+              err instanceof EndpointNotAvailableError
+                ? t("common.needsBackend", { endpoint: err.endpoint })
+                : t("riders.edit.danger.failed"),
+            );
+          } finally {
+            setRemoveBusy(false);
+            setRemoveOpen(false);
+          }
+        }}
+      />
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <AlertDialogContent>

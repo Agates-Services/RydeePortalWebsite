@@ -3,42 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-export function Bg() {
-  return (
-    <>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(23,168,130,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(23,168,130,0.06) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[320px] rounded-full pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(23,168,130,0.12) 0%, transparent 70%)",
-          filter: "blur(40px)",
-        }}
-      />
-      <div
-        className="absolute bottom-0 right-0 w-[400px] h-[400px] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at bottom right, rgba(23,168,130,0.08) 0%, transparent 70%)",
-          filter: "blur(60px)",
-        }}
-      />
-    </>
-  );
-}
-
 export function Logo({ subtitle, size = "md" }: { subtitle?: string; size?: "sm" | "md" }) {
   return (
-    <div className={`flex flex-col items-center gap-2 ${size === "md" ? "mb-8" : "mb-0"}`}>
+    <div className={`flex flex-col items-center gap-2 ${size === "md" ? "mb-4" : "mb-0"}`}>
       <RydeeLogo
-        className={"w-auto text-foreground " + (size === "md" ? "h-50" : "h-20")}
+        className={"w-auto text-foreground " + (size === "md" ? "h-36" : "h-20")}
         style={{ filter: "drop-shadow(0 4px 16px rgba(23,168,130,0.20))" }}
       />
       {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}

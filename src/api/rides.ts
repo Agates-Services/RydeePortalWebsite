@@ -1,4 +1,4 @@
-import { joinUrl, post } from "./client";
+import { EndpointNotAvailableError, joinUrl, post } from "./client";
 
 export const API_GET_RIDES_URL = joinUrl("/get-rides");
 export const API_GET_RIDE_URL = joinUrl("/get-ride");
@@ -149,4 +149,24 @@ export interface RidesSummary {
 
 export function getRidesSummary(): Promise<RidesSummary> {
   return post<RidesSummary>(API_GET_RIDES_SUMMARY_URL, {});
+}
+
+export interface RideChanges {
+  pickupLabel?: string;
+  dropoffLabel?: string;
+  fareAmount?: number;
+}
+
+// There is no update-ride or delete-ride endpoint in docs/design/API-Document-V1.pdf yet, so both
+// functions fail with EndpointNotAvailableError and the Rides page tells the user. When the backend
+// adds them, replace each body with a post() call and add matching mock handlers.
+export async function updateRide(rideId: string, changes: RideChanges): Promise<void> {
+  void rideId;
+  void changes;
+  throw new EndpointNotAvailableError("update-ride");
+}
+
+export async function deleteRide(rideId: string): Promise<void> {
+  void rideId;
+  throw new EndpointNotAvailableError("delete-ride");
 }

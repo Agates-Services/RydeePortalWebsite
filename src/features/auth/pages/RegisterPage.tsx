@@ -11,6 +11,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { formatDobDisplay } from "@/components/date-helpers";
 import { registerUser } from "@/api/auth";
 import { ROLES } from "@/types/profile";
+import { PageHeader } from "@/components/PageHeader";
 import { AuthShell } from "./AuthShell";
 
 const DOB_MAX_YEAR = new Date().getFullYear();
@@ -34,9 +35,10 @@ function parseDobDisplay(v: string): Date | undefined {
 interface RegisterPageProps {
   showRole?: boolean;
   backTo?: string;
+  addRiderMode?: boolean;
 }
 
-export default function RegisterPage({ showRole = false, backTo }: RegisterPageProps) {
+export default function RegisterPage({ showRole = false, backTo, addRiderMode = false }: RegisterPageProps) {
   const { t, i18n } = useTranslation();
   const isUrdu = i18n.language === "ur";
   const navigate = useNavigate();
@@ -175,7 +177,7 @@ export default function RegisterPage({ showRole = false, backTo }: RegisterPageP
         password: form.password,
         role: showRole ? form.role : "rider",
       });
-      navigate("/login", { replace: true });
+      navigate(addRiderMode ? (backTo ?? "/admin/all-riders") : "/login", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.register.errors.fallback"));
     } finally {
@@ -389,7 +391,7 @@ export default function RegisterPage({ showRole = false, backTo }: RegisterPageP
           disabled={loading}
           aria-busy={loading}
           size="lg"
-          className="w-full rounded-xl py-3.5 h-auto text-sm font-semibold shadow-[0_4px_20px_rgba(13,143,110,0.30)] hover:bg-primary-hover active:bg-primary-active hover:shadow-[0_4px_28px_rgba(13,143,110,0.45)] mt-2"
+          className="w-full rounded-xl py-3 h-auto text-sm font-semibold hover:bg-primary-hover active:bg-primary-active mt-2"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -403,9 +405,12 @@ export default function RegisterPage({ showRole = false, backTo }: RegisterPageP
     </>
   );
 
-  if (showRole) {
+  if (showRole || addRiderMode) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+        {addRiderMode && (
+          <PageHeader title={t("auth.register.addRiderTitle")} description={t("auth.register.addRiderDescription")} />
+        )}
         <Card className="w-full max-w-2xl rounded-2xl border-border">
           <CardContent className="p-6 md:p-8">{formBody}</CardContent>
         </Card>
@@ -415,9 +420,11 @@ export default function RegisterPage({ showRole = false, backTo }: RegisterPageP
 
   return (
     <AuthShell>
-      <Logo subtitle={t("auth.register.logoSubtitle")} />
-      <Card className="w-full rounded-2xl card-elevated border-border">
-        <CardContent className="p-8">
+      <div className="lg:hidden">
+        <Logo subtitle={t("auth.register.logoSubtitle")} />
+      </div>
+      <Card className="w-full rounded-2xl border-border">
+        <CardContent className="p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-1">
             <Button
               type="button"
