@@ -308,7 +308,7 @@ function tripTime(ride: Ride): number {
 function sortTrips(trips: Ride[], sortBy?: RideSortKey, sortDir?: RideSortDir): Ride[] {
   const dir = sortDir === "asc" ? 1 : -1;
   return [...trips].sort((a, b) => {
-    let result = 0;
+    let result: number;
     switch (sortBy) {
       case "rideId": result = a.rideId.localeCompare(b.rideId, undefined, { numeric: true }); break;
       case "status": result = a.status.localeCompare(b.status); break;
