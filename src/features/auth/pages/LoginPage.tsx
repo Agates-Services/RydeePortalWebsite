@@ -81,7 +81,7 @@ export default function LoginPage() {
       // Normalise the role at the response boundary so downstream code can trust a single field.
       const canonicalRole = profile.role || data.role;
       const normalizedProfile: Profile = { ...profile, role: canonicalRole };
-      auth.login(normalizedProfile, data.userId);
+      auth.login(normalizedProfile, data.userId, data.accessToken);
 
       const fromState = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
       const dest = fromState && fromState !== "/login" ? fromState : roleHome(canonicalRole);

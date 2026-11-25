@@ -1077,7 +1077,8 @@ export default function RiderEditPage() {
           setRemoveBusy(true);
           setRemoveMessage(null);
           try {
-            await deleteUser(row.phone);
+            if (!row.userId) throw new Error("Missing userId");
+            await deleteUser(row.userId);
             navigate(isRider ? "/admin/all-riders" : "/admin/users", { replace: true });
           } catch (err) {
             setRemoveMessage(

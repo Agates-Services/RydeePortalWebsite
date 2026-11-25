@@ -72,7 +72,7 @@ describe("mocked login flow — seed users land on role home", () => {
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
     expect(raw).toBeTruthy();
     const env = JSON.parse(raw!) as { v: number; userId: string | null; profile: { role: string } };
-    expect(env.v).toBe(2);
+    expect(env.v).toBe(3);
     expect(env.profile.role).toBe("Rider");
     expect(env.userId).toBe("USER#0300111111");
   });

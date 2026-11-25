@@ -231,7 +231,8 @@ export default function UsersPage() {
     setNotice(null);
     try {
       if (action === "delete") {
-        await deleteUser(row.phone);
+        if (!row.userId) throw new Error("Missing userId");
+        await deleteUser(row.userId);
         setRows((prev) => (prev ? prev.filter((r) => r.id !== row.id) : prev));
         setNotice({ tone: "success", text: t("users.feedback.deleted", { name: row.name }) });
       } else {

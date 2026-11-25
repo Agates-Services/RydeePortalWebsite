@@ -154,7 +154,12 @@ export const authHandlers = [
       rating,
       lastCustomerID,
     };
-    return HttpResponse.json({ user_id: `USER#${phone}`, role, profile });
+    return HttpResponse.json({
+      user_id: `USER#${phone}`,
+      accessToken: `mock-jwt-${phone}`,
+      role,
+      profile,
+    });
   }),
 
   http.post(API_REGISTER_URL, async ({ request }) => {

@@ -15,29 +15,35 @@ beforeEach(() => {
   vi.useRealTimers();
 });
 
-describe("D9 — session envelope roundtrip (v2)", () => {
-  it("saveSession then loadSession returns { userId, profile }", () => {
-    saveSession(rider, "USER#0300111111");
-    expect(loadSession()).toEqual({ userId: "USER#0300111111", profile: rider });
+describe("D9 — session envelope roundtrip (v3)", () => {
+  it("saveSession then loadSession returns userId, accessToken, and profile", () => {
+    saveSession(rider, "USER#0300111111", "jwt-token");
+    expect(loadSession()).toEqual({
+      userId: "USER#0300111111",
+      accessToken: "jwt-token",
+      profile: rider,
+    });
   });
 
-  it("saveSession without userId defaults userId to null", () => {
+  it("saveSession without optional values defaults them to null", () => {
     saveSession(rider);
-    expect(loadSession()).toEqual({ userId: null, profile: rider });
+    expect(loadSession()).toEqual({ userId: null, accessToken: null, profile: rider });
   });
 
-  it("stores a v2 envelope shape (never a raw Profile)", () => {
-    saveSession(rider, "USER#0300111111");
+  it("stores a v3 envelope shape with the access token", () => {
+    saveSession(rider, "USER#0300111111", "jwt-token");
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!) as {
       v: number;
       userId: string | null;
+      accessToken: string | null;
       profile: Profile;
       savedAt: number;
     };
-    expect(parsed.v).toBe(2);
+    expect(parsed.v).toBe(3);
     expect(parsed.userId).toBe("USER#0300111111");
+    expect(parsed.accessToken).toBe("jwt-token");
     expect(parsed.profile).toEqual(rider);
     expect(typeof parsed.savedAt).toBe("number");
   });
@@ -57,7 +63,7 @@ describe("D9 — rejection paths (all must clear storage AND return null)", () =
       SESSION_STORAGE_KEY,
       JSON.stringify({ v: 2, userId: "USER#1", profile: rider, savedAt: nowStore }),
     );
-    expect(loadSession()).toEqual({ userId: "USER#1", profile: rider });
+    expect(loadSession()).toEqual({ userId: "USER#1", accessToken: null, profile: rider });
   });
 
   it("TTL past the boundary → null + storage cleared", () => {

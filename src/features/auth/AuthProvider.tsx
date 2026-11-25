@@ -9,12 +9,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(initial?.userId ?? null);
   const userIdRef = useRef<string | null>(initial?.userId ?? null);
 
-  const login = useCallback((next: Profile, nextUserId?: string | null) => {
-    // A profile refresh (My Profile save) omits userId and must not drop the
-    // existing one; a fresh login passes the backend-issued userId explicitly.
+  const login = useCallback((next: Profile, nextUserId?: string | null, accessToken?: string | null) => {
     const resolved = nextUserId === undefined ? userIdRef.current : nextUserId;
     userIdRef.current = resolved;
-    saveSession(next, resolved);
+    saveSession(next, resolved, accessToken);
     setProfile(next);
     setUserId(resolved);
   }, []);

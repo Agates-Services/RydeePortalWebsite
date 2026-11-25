@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { API_GET_ALL_USERS_URL } from "@/api/users";
+import { API_DELETE_USER_URL, API_GET_ALL_USERS_URL } from "@/api/users";
 
 interface UserProfile {
   id: number;
@@ -88,5 +88,12 @@ export const usersHandlers = [
       for (const o of operatorSeeds) users.push(toEnvelope("Operator", o));
     }
     return HttpResponse.json({ users });
+  }),
+  http.post(API_DELETE_USER_URL, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { userId?: unknown };
+    if (typeof body.userId !== "string" || body.userId.trim() === "") {
+      return HttpResponse.json({ message: "userId is required" }, { status: 400 });
+    }
+    return HttpResponse.json({ success: true, message: "User deleted" });
   }),
 ];

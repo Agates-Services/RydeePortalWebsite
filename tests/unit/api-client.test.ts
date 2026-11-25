@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { joinUrl, post } from "@/api/client";
 import { API_LOGIN_URL } from "@/api/auth";
+import { saveSession } from "@/features/auth/session";
+import { API_DELETE_USER_URL, deleteUser } from "@/api/users";
 
 type FetchArgs = Parameters<typeof fetch>;
 
@@ -103,6 +105,36 @@ describe("API client — client.ts", () => {
         expect(e.responseText).toBe("");
         expect(e.message).toBe("Server Error");
       }
+    });
+  });
+
+  describe("authorization", () => {
+    it("adds Bearer token to non-login requests", async () => {
+      saveSession({ role: "Rider" }, "USER#1", "jwt-token");
+      const captured = installFetch(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      await post<{ ok: boolean }>(joinUrl("/get-all-riders"));
+      const headers = captured.init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBe("Bearer jwt-token");
+    });
+
+    it("does not add Authorization to login", async () => {
+      saveSession({ role: "Rider" }, "USER#1", "jwt-token");
+      const captured = installFetch(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      await post<{ ok: boolean }>(API_LOGIN_URL, { phone: "0300111111", password: "rider" });
+      const headers = captured.init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBeUndefined();
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("delete-user sends only userId", async () => {
+      saveSession({ role: "Admin" }, "USER#1", "jwt-token");
+      const captured = installFetch(new Response(JSON.stringify({ success: true }), { status: 200 }));
+      await deleteUser("USER-ID-123");
+      expect(captured.url).toBe(API_DELETE_USER_URL);
+      expect(captured.init?.body).toBe(JSON.stringify({ userId: "USER-ID-123" }));
+      const headers = captured.init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBe("Bearer jwt-token");
     });
   });
 });

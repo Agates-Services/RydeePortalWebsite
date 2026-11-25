@@ -11,4 +11,5 @@ export interface UsersRow {
   area: string;
   joinedAt: string;
   status: UserStatus;
+  userId?: string;
 }

@@ -23,8 +23,10 @@ export function toUsersRow(raw: Record<string, unknown>, idx: number): UsersRow 
   const role = normaliseRole(raw.role);
   if (!role) return null;
   const id = typeof raw.id === "number" ? raw.id : idx + 1;
+  const userId = typeof raw.userId === "string" && raw.userId !== "" ? raw.userId : undefined;
   return {
     id,
+    ...(userId !== undefined ? { userId } : {}),
     name: str(raw, "name"),
     phone: str(raw, "phone"),
     email: str(raw, "email"),

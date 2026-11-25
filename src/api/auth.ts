@@ -6,6 +6,7 @@ export const API_REGISTER_URL = joinUrl("/register-user");
 
 export interface LoginResult {
   userId: string | null;
+  accessToken: string | null;
   role: string;
   profile: Profile;
 }
@@ -28,6 +29,7 @@ export async function login(phone: string, password: string): Promise<LoginResul
   const raw = await post<{
     user_id?: unknown;
     userId?: unknown;
+    accessToken?: unknown;
     role?: string;
     profile?: Partial<Profile> & { role?: string };
   }>(API_LOGIN_URL, { phone, password });
@@ -39,7 +41,8 @@ export async function login(phone: string, password: string): Promise<LoginResul
   const profile = { ...(raw.profile ?? {}), role: canonical } as Profile;
   const rawId = raw.user_id ?? raw.userId;
   const userId = typeof rawId === "string" ? rawId : null;
-  return { userId, role: canonical, profile };
+  const accessToken = typeof raw.accessToken === "string" ? raw.accessToken : null;
+  return { userId, accessToken, role: canonical, profile };
 }
 
 export function registerUser(payload: RegisterPayload): Promise<unknown> {

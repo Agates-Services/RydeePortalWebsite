@@ -1,6 +1,7 @@
-import { EndpointNotAvailableError, joinUrl, post } from "./client";
+import { joinUrl, post } from "./client";
 
 export const API_GET_ALL_USERS_URL = joinUrl("/get-all-users");
+export const API_DELETE_USER_URL = joinUrl("/delete-user");
 
 interface WireUser {
   role?: unknown;
@@ -18,6 +19,7 @@ function flattenUser(u: WireUser): Record<string, unknown> {
   if (typeof flat.joinedAt === "undefined" && typeof flat.dateOfJoining === "string") {
     flat.joinedAt = String(flat.dateOfJoining);
   }
+  if (typeof u.userId !== "undefined" && !("userId" in flat)) flat.userId = u.userId;
   return flat;
 }
 
@@ -31,10 +33,6 @@ export async function getAllUsers(callerRole: string): Promise<UsersResponse> {
   return { users: (raw.users as WireUser[]).map(flattenUser) };
 }
 
-// There is no delete-user endpoint in docs/design/API-Document-V1.pdf yet, so this always fails
-// with EndpointNotAvailableError and the page tells the admin. When the backend adds it, replace
-// the body with a post() call that sends the user's phone, and add a matching mock handler.
-export async function deleteUser(phone: string): Promise<void> {
-  void phone;
-  throw new EndpointNotAvailableError("delete-user");
+export async function deleteUser(userId: string): Promise<void> {
+  await post<unknown>(API_DELETE_USER_URL, { userId });
 }

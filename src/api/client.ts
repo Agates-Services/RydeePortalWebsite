@@ -1,5 +1,5 @@
 import { environmentValidation } from "@/lib/env";
-import { clearSession } from "@/features/auth/session";
+import { clearSession, loadSession } from "@/features/auth/session";
 
 const rawBase = environmentValidation.ok
   ? environmentValidation.values.VITE_API_BASE_URL
@@ -51,15 +51,24 @@ interface RequestOptions {
 }
 
 async function request<T>(method: Method, url: string, options: RequestOptions = {}): Promise<T> {
+  const headers: Record<string, string> = {};
+
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (!isLoginUrl(url)) {
+    const accessToken = loadSession()?.accessToken;
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  }
+
   const init: RequestInit = {
     method,
     credentials: "include",
   };
 
-  if (options.body !== undefined) {
-    init.headers = { "Content-Type": "application/json" };
-    init.body = JSON.stringify(options.body);
-  }
+  if (Object.keys(headers).length > 0) init.headers = headers;
+  if (options.body !== undefined) init.body = JSON.stringify(options.body);
 
   const response = await fetch(url, init);
 
@@ -102,6 +111,10 @@ export function postMultipartWithProgress<T>(
   const promise = new Promise<T>((resolve, reject) => {
     xhr.open("POST", url, true);
     xhr.withCredentials = true;
+    if (!isLoginUrl(url)) {
+      const accessToken = loadSession()?.accessToken;
+      if (accessToken) xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    }
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
