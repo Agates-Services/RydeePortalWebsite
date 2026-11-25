@@ -1038,7 +1038,7 @@ export default function RiderEditPage() {
         </div>
       </form>
 
-      {isRider && row.phone && <RiderRideReport phone={row.phone} name={row.name} />}
+      {isRider && row.userId && <RiderRideReport userId={row.userId} phone={row.phone} name={row.name} />}
 
       {canDeleteThis && (
         <Card className="border-destructive/30 p-4 md:p-6" data-testid="fqa-danger-zone">

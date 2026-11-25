@@ -42,6 +42,29 @@ describe("API client — client.ts", () => {
     });
   });
 
+  describe("request timeout", () => {
+    it("aborts requests only after 45 seconds", async () => {
+      vi.useFakeTimers();
+      let capturedSignal: AbortSignal | undefined;
+      vi.spyOn(globalThis, "fetch").mockImplementation((_input, init) => {
+        capturedSignal = init?.signal as AbortSignal | undefined;
+        return new Promise<Response>((_resolve, reject) => {
+          capturedSignal?.addEventListener("abort", () => {
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        });
+      });
+
+      const pending = post(joinUrl("/slow-rides"), {});
+      const rejection = expect(pending).rejects.toMatchObject({ status: 0, message: "Request timed out" });
+      await vi.advanceTimersByTimeAsync(44_999);
+      expect(capturedSignal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await rejection;
+      vi.useRealTimers();
+    });
+  });
+
   describe("credentials", () => {
     it("always sends credentials: include (POST with body)", async () => {
       const captured = installFetch(new Response(JSON.stringify({ ok: true }), { status: 200 }));

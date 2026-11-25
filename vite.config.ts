@@ -14,6 +14,13 @@ const PROXY_PREFIXES = [
   "/get-all-riders",
   "/activate-rider",
   "/change-password",
+  "/get-all-trips",
+  "/get-driver-trips",
+  "/get-rides",
+  "/get-ride",
+  "/get-rides-summary",
+  "/get-all-users",
+  "/delete-user",
 ] as const;
 
 export default defineConfig(({ command, mode }) => {
@@ -39,6 +46,8 @@ export default defineConfig(({ command, mode }) => {
             changeOrigin: true,
             cookieDomainRewrite: "localhost",
             secure: true,
+            timeout: 45_000,
+            proxyTimeout: 45_000,
           },
         ]),
       )

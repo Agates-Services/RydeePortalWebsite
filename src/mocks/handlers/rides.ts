@@ -1,5 +1,7 @@
 import { http, HttpResponse } from "msw";
 import {
+  API_GET_ALL_TRIPS_URL,
+  API_GET_DRIVER_TRIPS_URL,
   API_GET_RIDES_URL,
   API_GET_RIDE_URL,
   API_GET_RIDES_SUMMARY_URL,
@@ -579,6 +581,29 @@ function computeSummary(): {
   };
 }
 
+function toWireTrip(ride: Ride): Record<string, unknown> {
+  return {
+    rideId: ride.rideId,
+    cust: {
+      phone: ride.customer.phone,
+      name: ride.customer.name,
+      origin: { address: ride.pickup.label, lat: ride.pickup.lat, lon: ride.pickup.lng },
+      dest: { address: ride.dropoff.label, lat: ride.dropoff.lat, lon: ride.dropoff.lng },
+    },
+    driverInfo: {
+      id: ride.rider.phone,
+      name: ride.rider.name,
+      phone: ride.rider.phone,
+      origin: { lat: ride.pickup.lat, long: ride.pickup.lng },
+    },
+    created_at: ride.startedAt ?? ride.scheduledAt ?? ride.completedAt ?? ride.canceledAt,
+    status: ride.status === "in_transit" ? "IN_TRANSIT" : ride.status === "scheduled" ? "CONFIRMED" : ride.status.toUpperCase(),
+    comment: ride.cancelReason ?? "",
+    fare: ride.fare?.amount,
+    ride_type: "Standard",
+  };
+}
+
 export const ridesHandlers = [
   http.post(API_GET_RIDES_URL, async ({ request }) => {
     // Mock-only convenience: real backend MUST derive the caller phone from the
@@ -639,5 +664,16 @@ export const ridesHandlers = [
   }),
   http.post(API_GET_RIDES_SUMMARY_URL, async () => {
     return HttpResponse.json(computeSummary());
+  }),
+  http.post(API_GET_ALL_TRIPS_URL, async () => {
+    return HttpResponse.json({ success: true, trips: RIDES.map(toWireTrip) });
+  }),
+  http.post(API_GET_DRIVER_TRIPS_URL, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { userId?: unknown; phone?: unknown };
+    const userId = typeof body.userId === "string" ? body.userId : typeof body.phone === "string" ? body.phone : "";
+    const rides = userId
+      ? RIDES.filter((ride) => ride.rider.phone.replace(/[^0-9]/g, "") === userId.replace(/[^0-9]/g, "") || ride.rider.phone === userId)
+      : [];
+    return HttpResponse.json({ success: true, trips: rides.map(toWireTrip) });
   }),
 ];

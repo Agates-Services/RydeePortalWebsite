@@ -7,6 +7,6 @@ export function DashboardRoute() {
 }
 
 export function RiderDashboardRoute() {
-  const { profile } = useAuth();
-  return <RiderDashboard profile={profile ?? null} />;
+  const { profile, userId } = useAuth();
+  return <RiderDashboard profile={profile ?? null} userId={userId} />;
 }

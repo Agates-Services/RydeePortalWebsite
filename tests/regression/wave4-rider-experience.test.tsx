@@ -182,4 +182,10 @@ describe("Wave 4 — sidebar role branch", () => {
     expect(screen.queryByRole("link", { name: /user management/i })).toBeNull();
     expect(screen.queryByRole("link", { name: /my rides/i })).toBeNull();
   });
+
+  it("default sorting returns trips latest-first", async () => {
+    const data = await getRides({ tab: "upcoming" });
+    const times = data.rides.map((ride) => ride.scheduledAt ? new Date(ride.scheduledAt).getTime() : Number.NEGATIVE_INFINITY);
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+  });
 });

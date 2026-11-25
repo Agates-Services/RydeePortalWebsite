@@ -27,7 +27,7 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-export function RiderRideReport({ phone, name }: { phone: string; name: string }) {
+export function RiderRideReport({ userId, phone, name }: { userId: string; phone: string; name: string }) {
   const { t } = useTranslation();
   const [rides, setRides] = useState<Ride[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -44,6 +44,7 @@ export function RiderRideReport({ phone, name }: { phone: string; name: string }
         getRides({
           tab,
           scope: "mine",
+          userId,
           phone,
           ...(tab === "completed" || tab === "canceled" ? { page: 1, pageSize: REPORT_PAGE_SIZE } : {}),
         }),
@@ -60,7 +61,7 @@ export function RiderRideReport({ phone, name }: { phone: string; name: string }
     return () => {
       cancelled = true;
     };
-  }, [phone]);
+  }, [userId, phone]);
 
   const rangeInvalid = from !== "" && to !== "" && from > to;
 
@@ -95,7 +96,7 @@ export function RiderRideReport({ phone, name }: { phone: string; name: string }
     [t("riders.report.stats.distance"), `${distance.toFixed(1)} km`],
   ];
 
-  const fileBase = `rydee-rider-${phone.replace(/\D/g, "")}-${from || "start"}-to-${to || "today"}`;
+  const fileBase = `rydee-rider-${userId.replace(/\D/g, "")}-${from || "start"}-to-${to || "today"}`;
 
   const exportCsv = () => {
     downloadCsv(serializeCsv(RIDES_EXPORT_HEADERS, ridesToExportRows(inRange)), `${fileBase}.csv`);
@@ -103,8 +104,8 @@ export function RiderRideReport({ phone, name }: { phone: string; name: string }
 
   const exportPdf = () => {
     void downloadTablePdf({
-      title: `Rider report: ${name || phone}`,
-      subtitle: `Phone ${phone} · ${from || "start"} to ${to || "today"}`,
+      title: `Rider report: ${name || userId}`,
+      subtitle: `Phone ${userId} · ${from || "start"} to ${to || "today"}`,
       summary: [
         ["Total rides", String(inRange.length)],
         ["Completed", String(completed.length)],

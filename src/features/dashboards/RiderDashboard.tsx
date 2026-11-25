@@ -25,6 +25,7 @@ import { deriveRiderStats, acceptanceRate } from "./riderStats";
 
 interface Props {
   profile: Profile | null;
+  userId: string | null;
 }
 
 const PKR = new Intl.NumberFormat("en-PK", {
@@ -33,19 +34,17 @@ const PKR = new Intl.NumberFormat("en-PK", {
   maximumFractionDigits: 0,
 });
 
-export default function RiderDashboard({ profile }: Props) {
+export default function RiderDashboard({ profile, userId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [rides, setRides] = useState<Ride[]>([]);
 
-  const phone = profile?.phone ?? "";
-
   useEffect(() => {
-    if (!phone) return;
+    if (!userId) return;
     let cancelled = false;
     (async () => {
       try {
-        const data = await getRides({ tab: "completed", scope: "mine", phone, pageSize: 100 });
+        const data = await getRides({ tab: "completed", scope: "mine", userId: userId ?? undefined, pageSize: 100 });
         if (!cancelled) setRides(data.rides);
       } catch {
         if (!cancelled) setRides([]);
@@ -54,7 +53,7 @@ export default function RiderDashboard({ profile }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [phone]);
+  }, [userId]);
 
   const [nowMs] = useState(() => Date.now());
   const stats = useMemo(() => deriveRiderStats(rides, nowMs), [rides, nowMs]);

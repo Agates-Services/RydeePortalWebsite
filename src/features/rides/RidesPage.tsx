@@ -48,7 +48,13 @@ interface SortState {
   key: SortKey;
   dir: SortDir;
 }
-const DEFAULT_SORT: SortState = { key: "rideId", dir: "asc" };
+const DEFAULT_SORT: Record<RidesTableTab, SortState> = {
+  all: { key: "rideId", dir: "asc" },
+  live: { key: "startedAt", dir: "desc" },
+  upcoming: { key: "scheduledAt", dir: "desc" },
+  completed: { key: "completedAt", dir: "desc" },
+  canceled: { key: "canceledAt", dir: "desc" },
+};
 const COMMON_KEYS: readonly SortKey[] = [
   "rideId",
   "riderName",
@@ -104,7 +110,7 @@ function readSort(sp: URLSearchParams, tab: RidesTableTab): SortState {
   const valid = validKeysFor(tab);
   const validKey = (valid as readonly string[]).includes(key ?? "");
   const validDir = dir === "asc" || dir === "desc";
-  if (!validKey || !validDir) return DEFAULT_SORT;
+  if (!validKey || !validDir) return DEFAULT_SORT[tab];
   return { key: key as SortKey, dir: dir as SortDir };
 }
 
@@ -159,8 +165,7 @@ export interface RidesPageProps {
 
 export default function RidesPage({ scope = "all" }: RidesPageProps) {
   const { t } = useTranslation();
-  const { profile } = useAuth();
-  const myPhone = scope === "mine" ? (profile?.phone ?? "") : "";
+  const { profile, userId } = useAuth();
   const role = profile?.role;
   const canEditRide = scope === "all" && can(role, "editRide");
   const canDeleteRide = scope === "all" && can(role, "deleteRide");
@@ -210,7 +215,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
   useEffect(() => {
     const valid = validKeysFor(tab);
     if (!(valid as readonly string[]).includes(sort.key)) {
-      setSort(DEFAULT_SORT);
+      setSort(DEFAULT_SORT[tab]);
     }
   }, [tab, sort.key]);
 
@@ -222,7 +227,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     if (page !== 1) next.set("page", String(page));
     const defSize: PageSize = tab === "live" || tab === "upcoming" ? 10 : 25;
     if (pageSize !== defSize) next.set("pageSize", String(pageSize));
-    if (sort.key !== DEFAULT_SORT.key || sort.dir !== DEFAULT_SORT.dir) {
+    if (sort.key !== DEFAULT_SORT[tab].key || sort.dir !== DEFAULT_SORT[tab].dir) {
       next.set("sort", sort.key);
       next.set("dir", sort.dir);
     }
@@ -236,7 +241,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     let cancelled = false;
     const isServerPaged = tab === "completed" || tab === "canceled";
     const withScope = <T extends object>(req: T) =>
-      scope === "mine" ? { ...req, scope: "mine" as const, phone: myPhone } : req;
+      scope === "mine" ? { ...req, scope: "mine" as const, userId: userId ?? undefined } : req;
     const fetchOnce = async () => {
       try {
         if (tab === "all") {
@@ -264,7 +269,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
           ? { tab, page, pageSize, sortBy: sort.key, sortDir: sort.dir }
           : { tab };
         const req = scope === "mine"
-          ? { ...baseReq, scope: "mine" as const, phone: myPhone }
+          ? { ...baseReq, scope: "mine" as const, userId: userId ?? undefined }
           : baseReq;
         const data = await getRides(req);
         if (cancelled) return;
@@ -277,7 +282,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : "";
         const status = (err as { status?: number } | null)?.status;
-        if (status === 404 || status === 0 || status === undefined) {
+        if (status === 404) {
           setUnavailable(true);
           setRides([]);
         } else {
@@ -296,7 +301,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [tab, page, pageSize, reloadKey, t, sort.key, sort.dir, scope, myPhone]);
+  }, [tab, page, pageSize, reloadKey, t, sort.key, sort.dir, scope, userId]);
 
   const now = nowTick;
 
@@ -322,6 +327,13 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     const q = debouncedSearch.trim().toLowerCase();
     if (q !== "") {
       out = out.filter((r) => matchesSearch(r, q));
+    }
+    if (tab === "all") {
+      return [...out].sort((a, b) => {
+        const aTime = tsOrNaN(a.completedAt ?? a.startedAt ?? a.scheduledAt ?? a.canceledAt);
+        const bTime = tsOrNaN(b.completedAt ?? b.startedAt ?? b.scheduledAt ?? b.canceledAt);
+        return cmpNum(aTime, bTime) * -1;
+      });
     }
     if (tab === "completed" || tab === "canceled") return out;
     return [...out].sort((a, b) => compare(a, b, sort.key, sort.dir));
@@ -352,7 +364,7 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
   const ridesForExport = async (): Promise<Ride[]> => {
     if (!isServerPaged) return visibleRides;
     const req = { tab: tab as RideTab, page: 1, pageSize: EXPORT_PAGE_SIZE, sortBy: sort.key, sortDir: sort.dir };
-    const data = await getRides(scope === "mine" ? { ...req, scope: "mine" as const, phone: myPhone } : req);
+    const data = await getRides(scope === "mine" ? { ...req, scope: "mine" as const, userId: userId ?? undefined } : req);
     const q = debouncedSearch.trim().toLowerCase();
     return data.rides.filter((r) => matchesSearch(r, q));
   };
@@ -461,9 +473,9 @@ export default function RidesPage({ scope = "all" }: RidesPageProps) {
     setSort((prev) => {
       if (prev.key !== key) return { key, dir: "asc" };
       if (prev.dir === "asc") return { key, dir: "desc" };
-      return DEFAULT_SORT;
+      return DEFAULT_SORT[tab];
     });
-  }, []);
+  }, [tab]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">

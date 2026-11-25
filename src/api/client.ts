@@ -50,6 +50,8 @@ interface RequestOptions {
   body?: unknown;
 }
 
+const API_REQUEST_TIMEOUT_MS = 45_000;
+
 async function request<T>(method: Method, url: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {};
 
@@ -70,15 +72,36 @@ async function request<T>(method: Method, url: string, options: RequestOptions =
   if (Object.keys(headers).length > 0) init.headers = headers;
   if (options.body !== undefined) init.body = JSON.stringify(options.body);
 
-  const response = await fetch(url, init);
+  const controller = new AbortController();
+  init.signal = controller.signal;
+  const startedAt = Date.now();
+  console.info(`[api] ${method} ${url}`, { timeoutMs: API_REQUEST_TIMEOUT_MS });
+  const timeoutId = window.setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const text = await response.text();
-    if (response.status === 401) handleGlobal401(url);
-    throw new ApiError(response.status, text, response.statusText);
+  try {
+    const response = await fetch(url, init);
+    const elapsedMs = Date.now() - startedAt;
+
+    if (!response.ok) {
+      console.warn(`[api] ${method} ${url} failed`, { status: response.status, elapsedMs });
+      const text = await response.text();
+      if (response.status === 401) handleGlobal401(url);
+      throw new ApiError(response.status, text, response.statusText);
+    }
+
+    const data = (await response.json()) as T;
+    console.info(`[api] ${method} ${url} completed`, { elapsedMs, status: response.status });
+    return data;
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError") {
+      console.warn(`[api] ${method} ${url} timed out`, { elapsedMs: Date.now() - startedAt });
+      throw new ApiError(0, "Request timed out", "Request timed out");
+    }
+    console.warn(`[api] ${method} ${url} error`, { elapsedMs: Date.now() - startedAt, error });
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
-
-  return (await response.json()) as T;
 }
 
 export function get<T>(url: string): Promise<T> {
